@@ -44,4 +44,20 @@ export const adminApi = {
     }),
   deleteDevice: (id: string) =>
     api<{ ok: boolean }>(`/api/admin/devices/${id}`, { method: "DELETE" }),
+  activities: (id: string, before?: number) => {
+    const q = before ? `?before=${before}&limit=20` : "?limit=20";
+    return api<{ items: Activity[]; hasMore: boolean }>(`/api/admin/devices/${id}/activities${q}`);
+  },
+  logActivity: (id: string, action: string, payload?: unknown) =>
+    api<{ ok: boolean }>(`/api/admin/devices/${id}/activities`, {
+      method: "POST",
+      body: JSON.stringify({ action, payload }),
+    }),
 };
+
+export interface Activity {
+  id: string;
+  action: string;
+  payload: string | null;
+  created_at: number;
+}

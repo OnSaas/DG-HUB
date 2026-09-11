@@ -5,6 +5,7 @@ import { usePulseHold } from "../hooks/usePulseHold";
 import { useSessionRecorder } from "../hooks/useSessionRecorder";
 import { useStrength } from "../hooks/useStrength";
 import { loadSettings, saveSettings, type Settings } from "../lib/settings";
+import { adminApi } from "../lib/api/admin";
 import { useDevice } from "../app/DeviceProvider";
 
 interface ConsoleValue {
@@ -109,9 +110,10 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     }
     if (strength.emergencyStop()) {
       recorder.markStop();
+      if (device?.id) void adminApi.logActivity(device.id, "estop");
       toast.add({ title: "已归零并清除波形", variant: "success" });
     }
-  }, [canControl, recorder, strength, toast]);
+  }, [canControl, device?.id, recorder, strength, toast]);
 
   const patchSettings = useCallback((partial: Partial<Settings>) => {
     setSettings((prev) => {

@@ -20,8 +20,7 @@ export function AppTopbar({
   const { deviceId } = useParams();
   const items = [
     ...NAV,
-    ...(deviceId ? deviceNav(deviceId) : []),
-    { to: "/admin/settings", label: "设置", match: "prefix" as const },
+    ...(deviceId ? deviceNav(deviceId) : [{ to: "/admin/settings", label: "偏好", match: "prefix" as const }]),
   ];
   const { emergencyStop, settings } = useConsole();
   const [confirm, setConfirm] = useState(false);

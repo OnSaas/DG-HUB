@@ -5,6 +5,7 @@ import { useDeviceState } from "../app/DeviceProvider";
 import { EmptyState } from "../components/EmptyState";
 import { StrengthPanel } from "../components/StrengthPanel";
 import { PageHeader } from "../layout/PageHeader";
+import { adminApi } from "../lib/api/admin";
 import { formatDuration } from "../lib/records";
 import { useConsole } from "../state/ConsoleProvider";
 
@@ -34,22 +35,41 @@ export function ConsolePage() {
         title={device.name}
         description={`${online ? "● 在线" : "○ 离线"} · Session ${device.session_id}`}
         actions={
-          paired && recorder.live ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                const note = settings.askNote ? (window.prompt("备注（可空）") ?? "") : "";
-                recorder.endSession({ note });
-              }}
-            >
-              结束会话
-            </Button>
-          ) : (
-            <Button variant="secondary" size="sm" onClick={() => nav(`/admin/devices/${device.id}/pair`)}>
-              去配对
-            </Button>
-          )
+          <div className="flex gap-2">
+            {relay.state === "disconnected" || relay.state === "error" || relay.state === "idle" ? (
+              <Button size="sm" onClick={() => relay.connect()}>
+                重连
+              </Button>
+            ) : null}
+            {canControl ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  pulse.stop();
+                  if (device.id) void adminApi.logActivity(device.id, "stop");
+                }}
+              >
+                停止波形
+              </Button>
+            ) : null}
+            {paired && recorder.live ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  const note = settings.askNote ? (window.prompt("备注（可空）") ?? "") : "";
+                  recorder.endSession({ note });
+                }}
+              >
+                结束会话
+              </Button>
+            ) : (
+              <Button variant="secondary" size="sm" onClick={() => nav(`/admin/devices/${device.id}/pair`)}>
+                去配对
+              </Button>
+            )}
+          </div>
         }
       />
       {!paired ? (

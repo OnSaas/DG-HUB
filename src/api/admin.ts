@@ -12,7 +12,7 @@ import {
   listDevicesByAdmin,
   updateDevice,
 } from "../db/devices";
-import { insertActivity, insertUsage, listUsageByDevice } from "../db/logs";
+import { insertActivity, insertUsage, listActivities, listUsageByDevice } from "../db/logs";
 
 export async function handleAdmin(
   request: Request,
@@ -66,6 +66,29 @@ export async function handleAdmin(
     if (!device) return notFound("device");
     if (method === "GET") return json({ records: await listUsageByDevice(env.DB, id) });
     if (method === "POST") return postRecord(request, env, principal, id);
+  }
+
+  const actMatch = path.match(/^\/devices\/([^/]+)\/activities$/);
+  if (actMatch) {
+    const id = decodeURIComponent(actMatch[1]!);
+    const device = await getOwnedDevice(env.DB, principal.id, id);
+    if (!device) return notFound("device");
+    if (method === "GET") {
+      const before = url.searchParams.get("before");
+      const limit = Number(url.searchParams.get("limit") ?? 20);
+      return json(await listActivities(env.DB, id, before ? Number(before) : null, limit));
+    }
+    if (method === "POST") {
+      const body = await readJson(request);
+      await insertActivity(env.DB, {
+        deviceId: id,
+        actorType: principal.type,
+        actorId: principal.id,
+        action: String(body.action ?? "op"),
+        payload: body.payload,
+      });
+      return json({ ok: true }, { status: 201 });
+    }
   }
 
   return notFound();

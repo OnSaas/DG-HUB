@@ -27,6 +27,34 @@ export async function insertActivity(
     .run();
 }
 
+export async function listActivities(
+  db: D1Database,
+  deviceId: string,
+  before: number | null,
+  limit: number,
+) {
+  const take = Math.min(50, Math.max(1, limit));
+  const rows = before
+    ? await db
+        .prepare(
+          `SELECT id, action, payload, created_at FROM activity_logs
+           WHERE device_id = ? AND created_at < ?
+           ORDER BY created_at DESC LIMIT ?`,
+        )
+        .bind(deviceId, before, take + 1)
+        .all()
+    : await db
+        .prepare(
+          `SELECT id, action, payload, created_at FROM activity_logs
+           WHERE device_id = ? ORDER BY created_at DESC LIMIT ?`,
+        )
+        .bind(deviceId, take + 1)
+        .all();
+  const list = (rows.results ?? []) as { id: string; action: string; payload: string | null; created_at: number }[];
+  const hasMore = list.length > take;
+  return { items: list.slice(0, take), hasMore };
+}
+
 export async function listUsageByDevice(db: D1Database, deviceId: string) {
   const rows = await db
     .prepare(`SELECT * FROM usage_records WHERE device_id = ? ORDER BY started_at DESC LIMIT 200`)

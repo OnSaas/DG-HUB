@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./app/auth/AuthProvider";
 import { RequireAdmin } from "./app/RequireAdmin";
 import { LoginPage } from "./features/auth/LoginPage";
+import { DeviceSettingsPage } from "./features/devices/DeviceSettingsPage";
 import { DevicesPage } from "./features/devices/DevicesPage";
 import { PublicHomePage } from "./features/public/HomePage";
 import { SharePlaceholderPage } from "./features/shares/SharePlaceholderPage";
@@ -32,6 +33,7 @@ export default function App() {
                 <Route path="/admin/devices/:deviceId/pair" element={<PairPage />} />
                 <Route path="/admin/devices/:deviceId/waves" element={<WavesPage />} />
                 <Route path="/admin/devices/:deviceId/records" element={<RecordsPage />} />
+                <Route path="/admin/devices/:deviceId/settings" element={<DeviceSettingsPage />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

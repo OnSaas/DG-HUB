@@ -8,5 +8,6 @@ export function deviceNav(deviceId: string) {
     { to: `/admin/devices/${deviceId}/pair`, label: "配对", match: "prefix" as const },
     { to: `/admin/devices/${deviceId}/waves`, label: "波形", match: "prefix" as const },
     { to: `/admin/devices/${deviceId}/records`, label: "记录", match: "prefix" as const },
+    { to: `/admin/devices/${deviceId}/settings`, label: "设置", match: "prefix" as const },
   ];
 }

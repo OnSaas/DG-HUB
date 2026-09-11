@@ -10,11 +10,14 @@ import { WaveCard } from "../components/WaveCard";
 import { useUserWaves } from "../hooks/useUserWaves";
 import { PageHeader } from "../layout/PageHeader";
 import { V4Channel } from "../lib/protocol";
+import { useDeviceState } from "../app/DeviceProvider";
+import { adminApi } from "../lib/api/admin";
 import { WAVE_PRESETS } from "../lib/waves";
 import { useConsole } from "../state/ConsoleProvider";
 
 export function WavesPage() {
   const { canControl, recorder, requirePaired, pulse } = useConsole();
+  const { device } = useDeviceState();
   const { waves, importFiles, remove, rename } = useUserWaves();
   const toast = useKumoToastManager();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -29,6 +32,9 @@ export function WavesPage() {
     const ok = pulse.start(channel, name, frames);
     if (ok) {
       recorder.markWave(name);
+      if (device?.id) {
+        void adminApi.logActivity(device.id, "wave", { channel: ch === 0 ? "A" : "B", wave: name });
+      }
       toast.add({
         title: `${ch === 0 ? "A" : "B"} 循环「${name}」`,
         variant: "success",
