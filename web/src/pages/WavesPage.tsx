@@ -11,13 +11,16 @@ import { useUserWaves } from "../hooks/useUserWaves";
 import { PageHeader } from "../layout/PageHeader";
 import { V4Channel } from "../lib/protocol";
 import { useDeviceState } from "../app/DeviceProvider";
+import { useAuth } from "../app/auth/AuthProvider";
 import { adminApi } from "../lib/api/admin";
+import { loginHref } from "../lib/login";
 import { WAVE_PRESETS } from "../lib/waves";
 import { useConsole } from "../state/ConsoleProvider";
 
 export function WavesPage() {
   const { canControl, recorder, requirePaired, pulse } = useConsole();
   const { device } = useDeviceState();
+  const { me } = useAuth();
   const { waves, importFiles, remove, rename } = useUserWaves();
   const toast = useKumoToastManager();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -27,6 +30,10 @@ export function WavesPage() {
   const [removeId, setRemoveId] = useState<string | null>(null);
 
   function hold(name: string, frames: readonly string[], ch: 0 | 1) {
+    if (!me) {
+      window.location.assign(loginHref(window.location.pathname));
+      return;
+    }
     if (!requirePaired()) return;
     const channel = ch === 0 ? V4Channel.A : V4Channel.B;
     const ok = pulse.start(channel, name, frames);

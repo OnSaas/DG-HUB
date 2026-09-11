@@ -6,6 +6,7 @@ import { useSessionRecorder } from "../hooks/useSessionRecorder";
 import { useStrength } from "../hooks/useStrength";
 import { loadSettings, saveSettings, type Settings } from "../lib/settings";
 import { adminApi } from "../lib/api/admin";
+import { useAuth } from "../app/auth/AuthProvider";
 import { useDevice } from "../app/DeviceProvider";
 
 interface ConsoleValue {
@@ -38,7 +39,8 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   );
 
   const device = useDevice();
-  const sessionId = device?.session_id ?? null;
+  const { me } = useAuth();
+  const sessionId = me && device?.session_id ? device.session_id : null;
   const relay = useCoyoteSocket(onEvent, sessionId);
 
   useEffect(() => {

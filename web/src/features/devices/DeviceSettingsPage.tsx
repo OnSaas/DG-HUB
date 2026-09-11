@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../app/auth/AuthProvider";
+import { NeedDevice } from "../../app/LegacyAdminRedirect";
 import { useDeviceState } from "../../app/DeviceProvider";
 import { StatusDot, formatLastSeen } from "../../components/StatusDot";
 import { PageHeader } from "../../layout/PageHeader";
@@ -8,6 +10,7 @@ import { useConsole } from "../../state/ConsoleProvider";
 import { SharePanel } from "./SharePanel";
 
 export function DeviceSettingsPage() {
+  const { me } = useAuth();
   const { device, loading, error, refresh } = useDeviceState();
   const { relay } = useConsole();
   const nav = useNavigate();
@@ -15,17 +18,26 @@ export function DeviceSettingsPage() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
+  if (!me) {
+    return (
+      <>
+        <PageHeader title="设备设置" description="登录后可改名、删除设备、签发分享。" />
+        <p className="text-sm text-neutral-500">浏览模式不显示危险操作和分享管理。</p>
+      </>
+    );
+  }
   if (loading && !device) return <p className="text-sm text-neutral-500">加载…</p>;
-  if (error || !device) {
+  if (error) {
     return (
       <div>
         <p>设备不存在</p>
-        <button type="button" className="mt-2 text-sm" onClick={() => nav("/admin/devices")}>
+        <button type="button" className="mt-2 text-sm" onClick={() => nav("/devices")}>
           返回
         </button>
       </div>
     );
   }
+  if (!device) return <NeedDevice title="设备设置" />;
 
   const display = name || device.name;
   const deviceId = device.id;
@@ -51,7 +63,7 @@ export function DeviceSettingsPage() {
     setBusy(true);
     try {
       await adminApi.deleteDevice(deviceId);
-      nav("/admin/devices");
+      nav("/devices");
     } catch (err) {
       setMsg(err instanceof Error ? err.message : String(err));
       setBusy(false);

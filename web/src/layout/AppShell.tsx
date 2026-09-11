@@ -4,6 +4,7 @@ import { DeviceProvider } from "../app/DeviceProvider";
 import { ConsoleProvider } from "../state/ConsoleProvider";
 import { AppSidebar } from "./AppSidebar";
 import { AppTopbar } from "./AppTopbar";
+import { GuestBanner } from "./GuestBanner";
 
 export function AppShell() {
   const [menu, setMenu] = useState(false);
@@ -30,6 +31,7 @@ export function AppShell() {
             </aside>
             <main className="dg-main">
               <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-6">
+                <GuestBanner />
                 <Outlet />
               </div>
             </main>

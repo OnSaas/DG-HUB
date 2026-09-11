@@ -4,6 +4,8 @@ import { Lightning, List, Stop } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useConsole } from "../state/ConsoleProvider";
+import { useAuth } from "../app/auth/AuthProvider";
+import { loginHref } from "../lib/login";
 import { NAV, deviceNav } from "./nav";
 
 export function AppTopbar({
@@ -18,14 +20,16 @@ export function AppTopbar({
   const loc = useLocation();
   const nav = useNavigate();
   const { deviceId } = useParams();
-  const items = [
-    ...NAV,
-    ...(deviceId ? deviceNav(deviceId) : [{ to: "/admin/settings", label: "偏好", match: "prefix" as const }]),
-  ];
+  const { me } = useAuth();
+  const items = deviceId ? deviceNav(deviceId) : NAV;
   const { emergencyStop, settings } = useConsole();
   const [confirm, setConfirm] = useState(false);
 
   const fireStop = () => {
+    if (!me) {
+      nav(loginHref(loc.pathname + loc.search));
+      return;
+    }
     if (settings.confirmStop) setConfirm(true);
     else emergencyStop();
   };

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { adminApi, type Device } from "../lib/api/admin";
+import { useAuth } from "./auth/AuthProvider";
 
 interface DeviceValue {
   device: Device | null;
@@ -18,12 +19,13 @@ const Ctx = createContext<DeviceValue>({
 
 export function DeviceProvider({ children }: { children: ReactNode }) {
   const { deviceId } = useParams();
+  const { me, loading: authLoading } = useAuth();
   const [device, setDevice] = useState<Device | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!deviceId) {
+    if (!me || !deviceId) {
       setDevice(null);
       setError(null);
       setLoading(false);
@@ -40,19 +42,20 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [deviceId]);
+  }, [deviceId, me]);
 
   useEffect(() => {
+    if (authLoading) return;
     void refresh();
-  }, [refresh]);
+  }, [authLoading, refresh]);
 
   useEffect(() => {
-    if (!deviceId) return;
+    if (!me || !deviceId) return;
     const id = window.setInterval(() => void refresh(), 3000);
     return () => window.clearInterval(id);
-  }, [deviceId, refresh]);
+  }, [deviceId, me, refresh]);
 
-  return <Ctx.Provider value={{ device, loading, error, refresh }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ device, loading: loading || authLoading, error, refresh }}>{children}</Ctx.Provider>;
 }
 
 export function useDevice() {

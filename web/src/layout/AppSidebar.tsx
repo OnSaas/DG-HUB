@@ -1,21 +1,19 @@
 import { Lightning } from "@phosphor-icons/react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../app/auth/AuthProvider";
+import { loginHref } from "../lib/login";
 import { NAV, deviceNav } from "./nav";
 
 export function AppSidebar() {
   const loc = useLocation();
   const nav = useNavigate();
   const { deviceId } = useParams();
-  const { logout } = useAuth();
+  const { me, logout } = useAuth();
 
-  const items = [
-    ...NAV,
-    ...(deviceId ? deviceNav(deviceId) : [{ to: "/admin/settings", label: "偏好", match: "prefix" as const }]),
-  ];
+  const items = deviceId ? deviceNav(deviceId) : NAV;
 
   const active = (to: string, match: "exact" | "prefix") =>
-    match === "exact" ? loc.pathname === to : loc.pathname.startsWith(to);
+    match === "exact" ? loc.pathname === to : loc.pathname === to || loc.pathname.startsWith(`${to}/`);
 
   return (
     <div className="rounded-2xl border border-black/10 bg-white p-5">
@@ -25,11 +23,11 @@ export function AppSidebar() {
         </div>
         <div className="min-w-0">
           <p className="truncate text-base font-semibold">DG-HUB</p>
-          <p className="truncate text-sm text-neutral-500">Admin</p>
+          <p className="truncate text-sm text-neutral-500">{me ? me.username : "浏览"}</p>
         </div>
       </div>
       <p className="mt-6 px-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
-        管理
+        {me ? "管理" : "功能"}
       </p>
       <nav className="mt-3 flex flex-col gap-2">
         {items.map((item) => (
@@ -46,13 +44,23 @@ export function AppSidebar() {
             {item.label}
           </button>
         ))}
-        <button
-          type="button"
-          className="rounded-xl px-4 py-3 text-left text-sm text-neutral-500 hover:bg-neutral-100"
-          onClick={() => void logout().then(() => nav("/"))}
-        >
-          退出
-        </button>
+        {me ? (
+          <button
+            type="button"
+            className="rounded-xl px-4 py-3 text-left text-sm text-neutral-500 hover:bg-neutral-100"
+            onClick={() => void logout().then(() => nav("/devices"))}
+          >
+            退出
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="rounded-xl px-4 py-3 text-left text-sm font-medium hover:bg-neutral-100"
+            onClick={() => nav(loginHref(loc.pathname + loc.search))}
+          >
+            登录
+          </button>
+        )}
       </nav>
     </div>
   );

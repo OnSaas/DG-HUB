@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { adminApi } from "../../lib/api/admin";
 import { useAuth } from "../../app/auth/AuthProvider";
+import { safeNext } from "../../lib/login";
 
 export function LoginPage() {
   const { me, refresh } = useAuth();
   const nav = useNavigate();
+  const [params] = useSearchParams();
+  const next = safeNext(params.get("next"));
   const [needed, setNeeded] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -13,8 +16,8 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (me) nav("/admin/devices", { replace: true });
-  }, [me, nav]);
+    if (me) nav(next, { replace: true });
+  }, [me, nav, next]);
 
   useEffect(() => {
     void adminApi.setupNeeded().then((r) => setNeeded(r.needed));
@@ -28,7 +31,7 @@ export function LoginPage() {
       if (needed) await adminApi.setup(username, password);
       else await adminApi.login(username, password);
       await refresh();
-      nav("/admin/devices", { replace: true });
+      nav(next, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -78,8 +81,8 @@ export function LoginPage() {
         </button>
       </form>
       <p className="mt-6 text-sm">
-        <Link to="/" className="text-neutral-500">
-          返回公开页
+        <Link to="/devices" className="text-neutral-500">
+          返回控制台
         </Link>
       </p>
     </div>

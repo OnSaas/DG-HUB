@@ -4,31 +4,50 @@ import { useNavigate } from "react-router-dom";
 import { ConnectActions } from "../components/ConnectActions";
 import { PairingCard } from "../components/PairingCard";
 import { PageHeader } from "../layout/PageHeader";
+import { useAuth } from "../app/auth/AuthProvider";
+import { NeedDevice } from "../app/LegacyAdminRedirect";
 import { useDeviceState } from "../app/DeviceProvider";
 import { qrPayload } from "../lib/protocol";
+import { loginHref } from "../lib/login";
 import { useConsole } from "../state/ConsoleProvider";
 
 export function PairPage() {
+  const { me } = useAuth();
   const { device, loading, error } = useDeviceState();
   const { relay } = useConsole();
   const nav = useNavigate();
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const sessionId = device?.session_id ?? null;
-  const qrUrl = sessionId ? qrPayload(origin, sessionId) : null;
-  const appOnline = relay.state === "paired" || device?.status === "online";
+
+  if (!me) {
+    return (
+      <>
+        <PageHeader title="配对" description="DG-LAB 4.0 扫码接入。登录后才会生成当前设备的二维码。" />
+        <section className="dg-panel p-6">
+          <p className="text-sm text-neutral-500">无 session 不连 WebSocket。</p>
+          <Button className="mt-4" size="sm" onClick={() => nav(loginHref("/pair"))}>
+            去登录
+          </Button>
+        </section>
+      </>
+    );
+  }
 
   if (loading && !device) return <Text variant="secondary">加载设备…</Text>;
-  if (error || !device) {
+  if (error) {
     return (
       <div className="flex flex-col gap-3">
         <Text variant="body">设备不存在</Text>
-        <Text variant="secondary">{error ?? "请从设备列表重新进入。"}</Text>
-        <Button size="sm" onClick={() => nav("/admin/devices")}>
+        <Button size="sm" onClick={() => nav("/devices")}>
           返回设备
         </Button>
       </div>
     );
   }
+  if (!device) return <NeedDevice title="配对" />;
+
+  const sessionId = device.session_id;
+  const qrUrl = qrPayload(origin, sessionId);
+  const appOnline = relay.state === "paired" || device.status === "online";
 
   return (
     <>
@@ -74,7 +93,7 @@ export function PairPage() {
               {relay.deviceName ?? relay.slotId ?? "已接入"} · 可到控制台
             </Text>
           </div>
-          <Button onClick={() => nav(`/admin/devices/${device.id}`)}>进入控制台</Button>
+          <Button onClick={() => nav(`/devices/${device.id}`)}>进入控制台</Button>
         </section>
       ) : null}
 
