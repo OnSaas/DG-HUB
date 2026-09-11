@@ -3,25 +3,38 @@ import { Text } from "@cloudflare/kumo/components/text";
 import { useNavigate } from "react-router-dom";
 import { ConnectActions } from "../components/ConnectActions";
 import { PairingCard } from "../components/PairingCard";
-import { SessionCard } from "../components/SessionCard";
 import { PageHeader } from "../layout/PageHeader";
+import { useDeviceState } from "../app/DeviceProvider";
+import { qrPayload } from "../lib/protocol";
 import { useConsole } from "../state/ConsoleProvider";
 
 export function PairPage() {
+  const { device, loading, error } = useDeviceState();
   const { relay } = useConsole();
   const nav = useNavigate();
-  const step =
-    relay.state === "paired"
-      ? 3
-      : relay.state === "connected" || relay.state === "connecting"
-        ? 2
-        : 1;
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  const sessionId = device?.session_id ?? null;
+  const qrUrl = sessionId ? qrPayload(origin, sessionId) : null;
+  const appOnline = relay.state === "paired" || device?.status === "online";
+
+  if (loading && !device) return <Text variant="secondary">加载设备…</Text>;
+  if (error || !device) {
+    return (
+      <div className="flex flex-col gap-3">
+        <Text variant="body">设备不存在</Text>
+        <Text variant="secondary">{error ?? "请从设备列表重新进入。"}</Text>
+        <Button size="sm" onClick={() => nav("/admin/devices")}>
+          返回设备
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <>
       <PageHeader
         title="配对"
-        description="DG-LAB 4.0 · Socket V4 · 扫码接入 APP"
+        description={`${device.name} · DG-LAB 4.0 扫码接入`}
         actions={
           <ConnectActions
             state={relay.state}
@@ -31,76 +44,54 @@ export function PairPage() {
         }
       />
 
-      <ol className="dg-panel grid grid-cols-3 divide-x divide-[var(--dg-border)]">
-        <Step n={1} active={step === 1} done={step > 1} title="连接中继" />
-        <Step n={2} active={step === 2} done={step > 2} title="APP 扫码" />
-        <Step n={3} active={step === 3} done={step === 3} title="完成" />
-      </ol>
+      <section className="dg-panel grid gap-2 px-5 py-4 sm:grid-cols-2">
+        <Meta label="设备" value={device.name} />
+        <Meta label="状态" value={appOnline ? "在线" : "离线"} />
+        <Meta label="Device ID" value={device.id} mono />
+        <Meta label="Session ID" value={device.session_id} mono />
+      </section>
 
-      {relay.state === "paired" && !relay.slotId ? (
+      {relay.state !== "paired" ? (
         <section className="dg-panel px-5 py-4">
           <Text variant="body" bold>
-            等待设备
+            {relay.state === "connected" || relay.state === "connecting"
+              ? "等待 APP"
+              : "请先连接控制端"}
           </Text>
           <Text variant="secondary" size="sm">
-            APP 已接入。用 4.0 APP 蓝牙连上郊狼后会显示 slot。
+            控制端连上后扫码。APP 蓝牙连上郊狼后会出现设备。
           </Text>
         </section>
       ) : null}
 
-      {relay.state === "paired" && relay.slotId ? (
+      {relay.state === "paired" ? (
         <section className="dg-panel flex flex-wrap items-center justify-between gap-3 px-5 py-4">
           <div>
             <Text variant="body" bold>
-              设备已就绪
+              APP 已连接
             </Text>
             <Text variant="secondary" size="sm">
-              {relay.deviceName ?? relay.slotId} · 可到控制台调节强度
+              {relay.deviceName ?? relay.slotId ?? "已接入"} · 可到控制台
             </Text>
           </div>
-          <Button onClick={() => nav("/")}>去控制台</Button>
+          <Button onClick={() => nav(`/admin/devices/${device.id}`)}>进入控制台</Button>
         </section>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(240px,2fr)]">
-        <section className="dg-panel p-6">
-          <PairingCard qrUrl={relay.qrUrl} waiting={relay.state === "connected"} />
-        </section>
-        <section className="dg-panel p-6">
-          <SessionCard
-            targetId={relay.targetId}
-            appId={relay.appId}
-            slotId={relay.slotId}
-            deviceName={relay.deviceName}
-            error={relay.error}
-          />
-        </section>
-      </div>
+      <section className="dg-panel p-6">
+        <PairingCard qrUrl={qrUrl} waiting={!appOnline} />
+      </section>
     </>
   );
 }
 
-function Step({
-  n,
-  title,
-  active,
-  done,
-}: {
-  n: number;
-  title: string;
-  active: boolean;
-  done: boolean;
-}) {
+function Meta({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <li className="flex items-center gap-3 px-4 py-3">
-      <span
-        className={`grid size-7 shrink-0 place-items-center rounded-full text-sm ${
-          done || active ? "bg-[var(--dg-gold)] text-black" : "bg-white/10"
-        }`}
-      >
-        {n}
-      </span>
-      <Text variant={active ? "body" : "secondary"}>{title}</Text>
-    </li>
+    <div>
+      <Text variant="secondary" size="xs">
+        {label}
+      </Text>
+      <p className={`mt-1 break-all text-sm ${mono ? "font-mono" : "font-medium"}`}>{value}</p>
+    </div>
   );
 }

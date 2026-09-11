@@ -53,9 +53,12 @@ export async function deleteOwnedDevice(db: D1Database, adminId: string, id: str
   await db.prepare(`DELETE FROM devices WHERE id = ? AND admin_id = ?`).bind(id, adminId).run();
 }
 
-export async function markDeviceOnline(db: D1Database, id: string): Promise<void> {
+export async function setDevicePresence(db: D1Database, sessionId: string, online: boolean): Promise<void> {
   const now = Date.now();
-  await db.prepare(`UPDATE devices SET status = 'online', last_seen_at = ?, updated_at = ? WHERE id = ?`).bind(now, now, id).run();
+  await db
+    .prepare(`UPDATE devices SET status = ?, last_seen_at = ?, updated_at = ? WHERE session_id = ?`)
+    .bind(online ? "online" : "offline", now, now, sessionId)
+    .run();
 }
 
 export async function touchDeviceSeen(db: D1Database, id: string): Promise<void> {

@@ -4,7 +4,7 @@ import { handlePublic } from "./api/public";
 import { handleShare } from "./api/share";
 import { authenticate, json, unauthorized, forbidden } from "./auth/middleware";
 import { can, Permission } from "./auth/principal";
-import { getDeviceBySessionId, markDeviceOnline, touchDeviceSeen } from "./db/devices";
+import { getDeviceBySessionId, touchDeviceSeen } from "./db/devices";
 
 export { Session };
 export { Session as DeviceSession };
@@ -46,7 +46,6 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
 }
 
 async function routeWebSocket(request: Request, env: Env, url: URL): Promise<Response> {
-  const segs = url.pathname.split("/").filter(Boolean);
   const tid = url.searchParams.get("tid") ?? url.searchParams.get("targetId");
   const sid = url.searchParams.get("sid");
   const principal = await authenticate(request, env.DB);
@@ -61,25 +60,18 @@ async function routeWebSocket(request: Request, env: Env, url: URL): Promise<Res
     return env.SESSION.getByName(device.session_id).fetch(new Request(dest, request));
   }
 
-  const controllerPath =
-    segs.length === 0 || (segs.length === 1 && (segs[0] === "v4" || segs[0] === "ws"));
+  if (!sid) return unauthorized("sid_or_tid_required");
 
-  if (controllerPath || sid) {
-    if (!can(principal, Permission.DEVICE_CONTROL)) {
-      return unauthorized("controller_auth_required");
-    }
-    if (!sid) return json({ error: "sid_required" }, { status: 400 });
-    const device = await getDeviceBySessionId(env.DB, sid);
-    if (!device) return unauthorized("unknown_device");
-    if (principal.type === "ADMIN" && device.admin_id !== principal.id) {
-      return forbidden("not_owner");
-    }
-    const dest = new URL(request.url);
-    dest.searchParams.set("role", "controller");
-    dest.searchParams.set("clientId", sid);
-    await markDeviceOnline(env.DB, device.id);
-    return env.SESSION.getByName(device.session_id).fetch(new Request(dest, request));
+  if (!can(principal, Permission.DEVICE_CONTROL)) {
+    return unauthorized("controller_auth_required");
   }
-
-  return new Response("Expected wss://host/v4?sid= or ?tid=", { status: 400 });
+  const device = await getDeviceBySessionId(env.DB, sid);
+  if (!device) return unauthorized("unknown_device");
+  if (principal.type === "ADMIN" && device.admin_id !== principal.id) {
+    return forbidden("not_owner");
+  }
+  const dest = new URL(request.url);
+  dest.searchParams.set("role", "controller");
+  dest.searchParams.set("clientId", sid);
+  return env.SESSION.getByName(device.session_id).fetch(new Request(dest, request));
 }

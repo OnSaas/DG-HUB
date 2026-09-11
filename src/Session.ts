@@ -1,4 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
+import { setDevicePresence } from "./db/devices";
 import {
   Close,
   HEARTBEAT_MS,
@@ -157,6 +158,9 @@ export class Session extends DurableObject<Env> {
         });
         if (this.apps.size === 0) {
           this.lastIdleAt = Date.now();
+          if (this.controllerId) {
+            await setDevicePresence(this.env.DB, this.controllerId, false);
+          }
           await this.ensureAlarm();
         }
       }
@@ -229,6 +233,7 @@ export class Session extends DurableObject<Env> {
       type: "client_attached",
       clientId,
     });
+    await setDevicePresence(this.env.DB, this.controllerId, true);
     await this.ensureAlarm();
   }
 

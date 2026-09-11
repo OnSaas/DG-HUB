@@ -20,10 +20,15 @@ export function DevicesPage() {
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
-    const device = await adminApi.createDevice(name.trim() || "未命名设备");
-    setName("");
-    await load();
-    nav(`/admin/devices/${device.id}`);
+    setError(null);
+    try {
+      const device = await adminApi.createDevice(name.trim() || "未命名设备");
+      setName("");
+      await load();
+      nav(`/admin/devices/${device.id}/pair`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
   }
 
   return (
@@ -37,7 +42,7 @@ export function DevicesPage() {
           onChange={(e) => setName(e.currentTarget.value)}
         />
         <button type="submit" className="rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white">
-          创建
+          添加设备
         </button>
       </form>
       {error ? <p className="text-sm text-red-600">{error}</p> : null}

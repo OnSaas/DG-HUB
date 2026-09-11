@@ -1,5 +1,4 @@
-import { createContext, useContext, type ReactNode } from "react";
-import { useCallback, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useCallback, useMemo, useState, type ReactNode } from "react";
 import { useKumoToastManager } from "@cloudflare/kumo/components/toast";
 import { useCoyoteSocket, type RelayEvent } from "../hooks/useCoyoteSocket";
 import { usePulseHold } from "../hooks/usePulseHold";
@@ -38,7 +37,19 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   );
 
   const device = useDevice();
-  const relay = useCoyoteSocket(onEvent, device?.session_id);
+  const sessionId = device?.session_id ?? null;
+  const relay = useCoyoteSocket(onEvent, sessionId);
+
+  useEffect(() => {
+    if (!sessionId) {
+      relay.disconnect();
+      return;
+    }
+    relay.connect();
+    return () => relay.disconnect();
+    // connect/disconnect identities follow sessionId
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
   const requirePaired = useCallback(() => {
     if (relay.state !== "paired") {
       toast.add({
