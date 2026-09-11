@@ -1,4 +1,4 @@
-import { Button } from "@cloudflare/kumo/components/button";
+import { Button } from "../components/ui/button";
 import { QrCode } from "@phosphor-icons/react";
 import { NavLink } from "react-router-dom";
 import { NeedDevice } from "../app/LegacyAdminRedirect";

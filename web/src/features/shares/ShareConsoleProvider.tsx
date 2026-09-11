@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { useKumoToastManager } from "@cloudflare/kumo/components/toast";
+import { useAppToast } from "../../lib/toast";
 import { useCoyoteSocket, type RelayEvent } from "../../hooks/useCoyoteSocket";
 import { usePulseHold } from "../../hooks/usePulseHold";
 import { useStrength } from "../../hooks/useStrength";
@@ -24,7 +24,7 @@ export function ShareConsoleProvider({
   sessionId: string;
   children: ReactNode;
 }) {
-  const toast = useKumoToastManager();
+  const toast = useAppToast();
   const [settings] = useState<Settings>(() => loadSettings());
 
   const onEvent = useCallback(

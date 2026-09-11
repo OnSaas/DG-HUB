@@ -1,150 +1,136 @@
-import { Button } from "@cloudflare/kumo/components/button";
-import { Dialog } from "@cloudflare/kumo/components/dialog";
-import { Input } from "@cloudflare/kumo/components/input";
-import { Switch } from "@cloudflare/kumo/components/switch";
-import { Text } from "@cloudflare/kumo/components/text";
-import { useKumoToastManager } from "@cloudflare/kumo/components/toast";
+import { useTranslation } from "react-i18next";
+import { Button } from "../components/ui/button";
+import { Dialog } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Switch } from "../components/ui/switch";
+import { Text } from "../components/ui/text";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { PageHeader } from "../layout/PageHeader";
+import { ThemeLocaleControls } from "../layout/ThemeLocaleControls";
 import { DEFAULT_SETTINGS } from "../lib/settings";
+import { useAppToast } from "../lib/toast";
 import { useConsole } from "../state/ConsoleProvider";
 
 export function SettingsPage() {
+  const { t } = useTranslation();
   const { settings, patchSettings, recorder } = useConsole();
-  const toast = useKumoToastManager();
+  const toast = useAppToast();
   const [clearOpen, setClearOpen] = useState(false);
 
   return (
     <>
       <PageHeader
-        title="设置"
-        description="改完即保存，刷新后保持。"
+        title={t("settings.title")}
+        description={t("settings.desc")}
         actions={
           <Button
             variant="secondary"
             size="sm"
             onClick={() => {
               patchSettings({ ...DEFAULT_SETTINGS });
-              toast.add({ title: "已恢复默认", variant: "success" });
+              toast.add({ title: t("settings.resetDone"), variant: "success" });
             }}
           >
-            恢复默认
+            {t("settings.reset")}
           </Button>
         }
       />
 
       <section className="dg-panel px-5 py-2">
-        <SectionTitle>安全</SectionTitle>
+        <SectionTitle>{t("settings.appearance")}</SectionTitle>
+        <FormRow label={t("common.appearance")} hint={t("common.language")} control={<ThemeLocaleControls />} />
+      </section>
+
+      <section className="dg-panel px-5 py-2">
+        <SectionTitle>{t("settings.safety")}</SectionTitle>
         <FormRow
-          label="A 通道软件上限"
-          hint="控制台滑条最大值，不超过 200"
+          label={t("settings.capA")}
+          hint={t("settings.capHint")}
           control={
             <Input
               type="number"
               min={0}
               max={200}
-              size="sm"
               value={String(settings.aCap)}
               onChange={(e) => patchSettings({ aCap: clamp(Number(e.currentTarget.value)) })}
             />
           }
         />
         <FormRow
-          label="B 通道软件上限"
-          hint="控制台滑条最大值，不超过 200"
+          label={t("settings.capB")}
+          hint={t("settings.capHint")}
           control={
             <Input
               type="number"
               min={0}
               max={200}
-              size="sm"
               value={String(settings.bCap)}
               onChange={(e) => patchSettings({ bCap: clamp(Number(e.currentTarget.value)) })}
             />
           }
         />
         <FormRow
-          label="急停需确认"
-          hint="开启后急停先弹出确认框"
-          control={
-            <Switch
-              checked={settings.confirmStop}
-              onCheckedChange={(v) => patchSettings({ confirmStop: v })}
-            />
-          }
+          label={t("settings.confirmStop")}
+          hint={t("settings.confirmStopHint")}
+          control={<Switch checked={settings.confirmStop} onCheckedChange={(v) => patchSettings({ confirmStop: v })} />}
         />
         <FormRow
-          label="A/B 联动"
-          hint="调一侧强度时另一侧跟着走"
-          control={
-            <Switch
-              checked={settings.linkAB}
-              onCheckedChange={(v) => patchSettings({ linkAB: v })}
-            />
-          }
+          label={t("settings.linkAB")}
+          hint={t("settings.linkABHint")}
+          control={<Switch checked={settings.linkAB} onCheckedChange={(v) => patchSettings({ linkAB: v })} />}
         />
       </section>
 
       <section className="dg-panel px-5 py-2">
-        <SectionTitle>记录</SectionTitle>
+        <SectionTitle>{t("settings.records")}</SectionTitle>
         <FormRow
-          label="自动保存战绩"
-          hint="配对成功起算，断开时落库"
-          control={
-            <Switch
-              checked={settings.autoSave}
-              onCheckedChange={(v) => patchSettings({ autoSave: v })}
-            />
-          }
+          label={t("settings.autoSave")}
+          hint={t("settings.autoSaveHint")}
+          control={<Switch checked={settings.autoSave} onCheckedChange={(v) => patchSettings({ autoSave: v })} />}
         />
         <FormRow
-          label="结束时询问备注"
-          hint="结束并保存时弹出备注"
-          control={
-            <Switch
-              checked={settings.askNote}
-              onCheckedChange={(v) => patchSettings({ askNote: v })}
-            />
-          }
+          label={t("settings.askNote")}
+          hint={t("settings.askNoteHint")}
+          control={<Switch checked={settings.askNote} onCheckedChange={(v) => patchSettings({ askNote: v })} />}
         />
         <FormRow
-          label="清除本地记录"
-          hint="只清本机浏览器数据"
+          label={t("settings.clearLocal")}
+          hint={t("settings.clearLocalHint")}
           control={
             <Button variant="secondary" size="sm" onClick={() => setClearOpen(true)}>
-              清空
+              {t("settings.clear")}
             </Button>
           }
         />
       </section>
 
       <section className="dg-panel px-5 py-4">
-        <SectionTitle>关于</SectionTitle>
+        <SectionTitle>{t("settings.about")}</SectionTitle>
         <Text variant="secondary">DG-HUB 0.1.0 · Socket V4</Text>
         <Text variant="secondary" size="xs">
-          非官方网页主控。记录仅存本机浏览器。
+          {t("settings.aboutBody")}
         </Text>
       </section>
 
       {clearOpen ? (
         <Dialog.Root open onOpenChange={(o) => !o && setClearOpen(false)}>
-          <Dialog className="p-6">
-            <Dialog.Title>清空全部记录？</Dialog.Title>
-            <Dialog.Description>只清本机 localStorage，不可恢复。</Dialog.Description>
+          <Dialog>
+            <Dialog.Title className="font-semibold">{t("settings.clearTitle")}</Dialog.Title>
+            <Dialog.Description className="mt-2 text-sm text-[var(--muted)]">{t("settings.clearDesc")}</Dialog.Description>
             <div className="mt-4 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setClearOpen(false)}>
-                取消
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="destructive"
                 onClick={() => {
                   recorder.clearAll();
                   setClearOpen(false);
-                  toast.add({ title: "已清空记录", variant: "success" });
+                  toast.add({ title: t("settings.cleared"), variant: "success" });
                 }}
               >
-                清空
+                {t("settings.clear")}
               </Button>
             </div>
           </Dialog>
@@ -155,22 +141,10 @@ export function SettingsPage() {
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
-  return (
-    <div className="pt-3 pb-1 text-xs font-medium uppercase tracking-wide text-[var(--dg-muted)]">
-      {children}
-    </div>
-  );
+  return <div className="pt-3 pb-1 text-xs font-medium uppercase tracking-wide text-[var(--muted)]">{children}</div>;
 }
 
-function FormRow({
-  label,
-  hint,
-  control,
-}: {
-  label: string;
-  hint: string;
-  control: ReactNode;
-}) {
+function FormRow({ label, hint, control }: { label: string; hint: string; control: ReactNode }) {
   return (
     <div className="dg-form-row">
       <div className="min-w-0">
@@ -179,7 +153,7 @@ function FormRow({
           {hint}
         </Text>
       </div>
-      <div className="w-[140px] shrink-0">{control}</div>
+      <div className="w-[180px] shrink-0">{control}</div>
     </div>
   );
 }

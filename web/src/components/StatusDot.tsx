@@ -1,18 +1,20 @@
+import i18n from "../i18n";
+
 export function formatLastSeen(ts: number | null | undefined): string {
-  if (!ts) return "从未";
+  if (!ts) return i18n.t("device.never");
   const d = Date.now() - ts;
-  if (d < 15_000) return "刚刚";
-  if (d < 60_000) return `${Math.floor(d / 1000)} 秒前`;
-  if (d < 3600_000) return `${Math.floor(d / 60_000)} 分前`;
-  if (d < 86400_000) return `${Math.floor(d / 3600_000)} 小时前`;
-  return new Date(ts).toLocaleString();
+  if (d < 15_000) return i18n.t("device.justNow");
+  if (d < 60_000) return i18n.t("device.secondsAgo", { n: Math.floor(d / 1000) });
+  if (d < 3600_000) return i18n.t("device.minutesAgo", { n: Math.floor(d / 60_000) });
+  if (d < 86400_000) return i18n.t("device.hoursAgo", { n: Math.floor(d / 3600_000) });
+  return new Intl.DateTimeFormat(i18n.language).format(new Date(ts));
 }
 
 export function StatusDot({ online }: { online: boolean }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-sm">
-      <span className={`size-2 rounded-full ${online ? "bg-emerald-500" : "bg-neutral-300"}`} />
-      {online ? "在线" : "离线"}
+    <span className="inline-flex items-center gap-1.5 text-sm text-[var(--muted)]">
+      <span className={`size-2 rounded-full ${online ? "bg-emerald-500" : "bg-[var(--border)]"}`} />
+      {online ? i18n.t("device.online") : i18n.t("device.offline")}
     </span>
   );
 }

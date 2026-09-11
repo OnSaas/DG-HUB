@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ThemeLocaleControls } from "../../layout/ThemeLocaleControls";
 import { StrengthPanel } from "../../components/StrengthPanel";
 import { PairingCard } from "../../components/PairingCard";
 import { WaveCard } from "../../components/WaveCard";
@@ -53,7 +54,7 @@ export function SharePage() {
 
   if (!token) return <Dead title="无效链接" />;
   if (metaErr) return <Dead title="链接不存在" />;
-  if (!meta) return <p className="p-8 text-sm text-neutral-500">加载…</p>;
+  if (!meta) return <p className="p-8 text-sm text-[var(--muted)]">…</p>;
   if (meta.expired) return <Dead title="链接已过期" />;
   if (meta.revoked) return <Dead title="链接已撤销" />;
 
@@ -188,10 +189,13 @@ function ShareDesk({ session }: { session: ShareUnlock }) {
 
 function Dead({ title }: { title: string }) {
   return (
-    <div className="mx-auto max-w-md px-4 py-16">
+    <div className="mx-auto max-w-md px-4 py-16 text-[var(--fg)]">
+      <div className="mb-6 flex justify-end">
+        <ThemeLocaleControls compact />
+      </div>
       <h1 className="text-2xl font-semibold">{title}</h1>
-      <Link to="/" className="mt-6 inline-block text-sm text-neutral-500">
-        返回公开页
+      <Link to="/" className="mt-6 inline-block text-sm text-[var(--muted)]">
+        ←
       </Link>
     </div>
   );

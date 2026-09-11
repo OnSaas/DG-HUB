@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useCallback, useMemo, useState, type ReactNode } from "react";
-import { useKumoToastManager } from "@cloudflare/kumo/components/toast";
+import { useAppToast } from "../lib/toast";
 import { useCoyoteSocket, type RelayEvent } from "../hooks/useCoyoteSocket";
 import { usePulseHold } from "../hooks/usePulseHold";
 import { useSessionRecorder } from "../hooks/useSessionRecorder";
@@ -7,6 +7,7 @@ import { useStrength } from "../hooks/useStrength";
 import { loadSettings, saveSettings, type Settings } from "../lib/settings";
 import { adminApi } from "../lib/api/admin";
 import { useAuth } from "../app/auth/AuthProvider";
+import i18n from "../i18n";
 import { useDevice } from "../app/DeviceProvider";
 
 interface ConsoleValue {
@@ -24,7 +25,7 @@ interface ConsoleValue {
 const Ctx = createContext<ConsoleValue | null>(null);
 
 export function ConsoleProvider({ children }: { children: ReactNode }) {
-  const toast = useKumoToastManager();
+  const toast = useAppToast();
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
 
   const onEvent = useCallback(
@@ -56,16 +57,16 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   const requirePaired = useCallback(() => {
     if (relay.state !== "paired") {
       toast.add({
-        title: "请先完成配对",
-        description: "打开「配对」连接中继并扫码",
+        title: i18n.t("control.needPair"),
+        description: i18n.t("control.needPairHint"),
         variant: "warning",
       });
       return false;
     }
     if (!relay.slotId) {
       toast.add({
-        title: "等待设备",
-        description: "APP 已接入，等郊狼出现后再控制",
+        title: i18n.t("control.waitDevice"),
+        description: i18n.t("control.waitDeviceHint"),
         variant: "warning",
       });
       return false;

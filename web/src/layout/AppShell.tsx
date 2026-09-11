@@ -29,7 +29,7 @@ export function AppShell() {
               <AppSidebar />
             </aside>
             <main className="dg-main">
-              <div className="rounded-2xl border border-black/10 bg-white p-4 sm:p-6">
+              <div className="dg-card p-4 sm:p-6">
                 <Outlet />
               </div>
             </main>

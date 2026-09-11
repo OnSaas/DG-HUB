@@ -1,5 +1,5 @@
-import { Button } from "@cloudflare/kumo/components/button";
-import { Text } from "@cloudflare/kumo/components/text";
+import { Button } from "../components/ui/button";
+import { Text } from "../components/ui/text";
 import { NavLink } from "react-router-dom";
 import { ConnectActions } from "../components/ConnectActions";
 import { PairingCard } from "../components/PairingCard";

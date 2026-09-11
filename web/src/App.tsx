@@ -1,4 +1,4 @@
-import { Toasty } from "@cloudflare/kumo/components/toast";
+import { Toaster } from "sonner";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AuthProvider } from "./app/auth/AuthProvider";
 import { RequireAdmin } from "./app/RequireAdmin";
@@ -14,6 +14,7 @@ import { PairPage } from "./pages/PairPage";
 import { RecordsPage } from "./pages/RecordsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { WavesPage } from "./pages/WavesPage";
+import { ThemeProvider, useTheme } from "./theme/ThemeProvider";
 
 function LoginAlias() {
   const { search } = useLocation();
@@ -26,10 +27,21 @@ function DevicesAlias() {
   return <Navigate to={`/admin/devices${rest}${search}`} replace />;
 }
 
+function ThemedToaster() {
+  const { theme } = useTheme();
+  const dark =
+    theme === "dark" ||
+    (theme === "system" &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+  return <Toaster theme={dark ? "dark" : "light"} richColors position="top-right" />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <Toasty>
+      <ThemeProvider>
+        <ThemedToaster />
         <AuthProvider>
           <Routes>
             <Route path="/" element={<PublicHomePage />} />
@@ -54,7 +66,7 @@ export default function App() {
             <Route path="*" element={<PublicHomePage />} />
           </Routes>
         </AuthProvider>
-      </Toasty>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

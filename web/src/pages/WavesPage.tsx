@@ -1,8 +1,8 @@
-import { Button } from "@cloudflare/kumo/components/button";
-import { Dialog } from "@cloudflare/kumo/components/dialog";
-import { Input } from "@cloudflare/kumo/components/input";
-import { Text } from "@cloudflare/kumo/components/text";
-import { useKumoToastManager } from "@cloudflare/kumo/components/toast";
+import { Button } from "../components/ui/button";
+import { Dialog } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Text } from "../components/ui/text";
+import { useAppToast } from "../lib/toast";
 import { Waveform } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import { EmptyState } from "../components/EmptyState";
@@ -19,7 +19,7 @@ export function WavesPage() {
   const { canControl, recorder, requirePaired, pulse } = useConsole();
   const { device } = useDeviceState();
   const { waves, importFiles, remove, rename } = useUserWaves();
-  const toast = useKumoToastManager();
+  const toast = useAppToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [renameId, setRenameId] = useState<string | null>(null);
@@ -93,11 +93,7 @@ export function WavesPage() {
               className="hidden"
               onChange={(e) => void onFiles(e.target.files)}
             />
-            <Button
-              size="sm"
-              loading={importing}
-              onClick={() => fileRef.current?.click()}
-            >
+            <Button size="sm" disabled={importing} onClick={() => fileRef.current?.click()}>
               导入
             </Button>
           </>

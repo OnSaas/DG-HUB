@@ -1,20 +1,12 @@
-import { Button } from "@cloudflare/kumo/components/button";
-import { Stop } from "@phosphor-icons/react";
+import { Square } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Button } from "./ui/button";
 
-interface Props {
-  onStop: () => void;
-}
-
-export function EmergencyStop({ onStop }: Props) {
+export function EmergencyStop({ onStop }: { onStop: () => void }) {
+  const { t } = useTranslation();
   return (
-    <Button
-      variant="destructive"
-      size="lg"
-      icon={Stop}
-      onClick={onStop}
-      className="w-full"
-    >
-      急停
+    <Button variant="destructive" size="lg" icon={Square} onClick={onStop} className="w-full">
+      {t("control.estop")}
     </Button>
   );
 }

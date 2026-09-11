@@ -1,6 +1,6 @@
-import { ClipboardText } from "@cloudflare/kumo/components/clipboard-text";
-import { Text } from "@cloudflare/kumo/components/text";
-import { useKumoToastManager } from "@cloudflare/kumo/components/toast";
+import { ClipboardText } from "./ui/clipboard-text";
+import { Text } from "./ui/text";
+import { useAppToast } from "../lib/toast";
 
 interface Props {
   targetId: string | null;
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function SessionCard({ targetId, appId, slotId, deviceName, error }: Props) {
-  const toast = useKumoToastManager();
+  const toast = useAppToast();
   const copied = () => toast.add({ title: "已复制", variant: "success" });
   return (
     <div className="flex flex-col gap-3">

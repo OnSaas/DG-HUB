@@ -1,10 +1,12 @@
-import { Button } from "@cloudflare/kumo/components/button";
-import { Dialog } from "@cloudflare/kumo/components/dialog";
-import { Lightning, List, Stop } from "@phosphor-icons/react";
+import { Menu, Square, Zap } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useConsole } from "../state/ConsoleProvider";
+import { Button } from "../components/ui/button";
+import { Dialog } from "../components/ui/dialog";
 import { NAV, deviceNav } from "./nav";
+import { ThemeLocaleControls } from "./ThemeLocaleControls";
 
 export function AppTopbar({
   menuOpen,
@@ -15,10 +17,11 @@ export function AppTopbar({
   onMenu: () => void;
   onCloseMenu: () => void;
 }) {
+  const { t } = useTranslation();
   const { deviceId } = useParams();
   const items = deviceId
     ? deviceNav(deviceId)
-    : [...NAV, { to: "/admin/settings", label: "偏好", match: "prefix" as const }];
+    : [...NAV, { to: "/admin/settings", key: "nav.prefs", match: "prefix" as const }];
   const { emergencyStop, settings } = useConsole();
   const [confirm, setConfirm] = useState(false);
 
@@ -28,64 +31,59 @@ export function AppTopbar({
   };
 
   return (
-    <header className="dg-header">
-      <div className="dg-capsule">
-        <div className="flex items-center gap-2 py-2 pl-4">
-          <Lightning size={18} weight="fill" className="dg-gold" />
-          <span className="text-[15px] font-semibold">DG-HUB</span>
-        </div>
-        <div className="relative ml-auto flex items-center pr-1">
+    <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--bg)] px-3 py-2">
+      <div className="flex items-center gap-2">
+        <Zap size={16} />
+        <span className="font-display text-sm font-semibold">DG-HUB</span>
+        <div className="ml-auto flex items-center gap-1">
+          <ThemeLocaleControls compact />
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-500"
-            aria-label="急停"
+            className="flex h-9 w-9 items-center justify-center rounded-[8px] text-[var(--danger)]"
+            aria-label={t("control.estop")}
             onClick={fireStop}
           >
-            <Stop size={18} weight="fill" />
+            <Square size={16} fill="currentColor" />
           </button>
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-500"
-            aria-label="菜单"
+            className="flex h-9 w-9 items-center justify-center rounded-[8px] text-[var(--fg)]"
+            aria-label={t("common.menu")}
             aria-expanded={menuOpen}
             onClick={onMenu}
           >
-            <List size={20} />
+            <Menu size={18} />
           </button>
-          {menuOpen ? (
-            <div className="dg-menu-pop">
-              {items.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.match === "exact"}
-                  className={({ isActive }) => `dg-menu-link ${isActive ? "is-active" : ""}`}
-                  onClick={onCloseMenu}
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </div>
-          ) : null}
         </div>
       </div>
       {menuOpen ? (
-        <button
-          type="button"
-          className="fixed inset-0 z-30 bg-black/30"
-          aria-label="关闭选单"
-          onClick={onCloseMenu}
-        />
+        <nav className="mt-2 rounded-[10px] border border-[var(--border)] bg-[var(--card)] p-1">
+          {items.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.match === "exact"}
+              onClick={onCloseMenu}
+              className={({ isActive }) =>
+                `block rounded-[8px] px-3 py-2 text-sm ${isActive ? "bg-[var(--bg-muted)]" : ""}`
+              }
+            >
+              {t(item.key)}
+            </NavLink>
+          ))}
+        </nav>
       ) : null}
 
       {confirm ? (
         <Dialog.Root open onOpenChange={(o) => !o && setConfirm(false)}>
-          <Dialog className="p-6">
-            <Dialog.Title>确认急停？</Dialog.Title>
-            <Dialog.Description>双通道将归零并清波形。</Dialog.Description>
+          <Dialog>
+            <Dialog.Title className="text-base font-semibold">{t("control.estopConfirm")}</Dialog.Title>
+            <Dialog.Description className="mt-2 text-sm text-[var(--muted)]">
+              {t("control.estopDesc")}
+            </Dialog.Description>
             <div className="mt-4 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setConfirm(false)}>
-                取消
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -94,7 +92,7 @@ export function AppTopbar({
                   emergencyStop();
                 }}
               >
-                急停
+                {t("control.estop")}
               </Button>
             </div>
           </Dialog>

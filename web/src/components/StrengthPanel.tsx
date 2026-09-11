@@ -1,8 +1,8 @@
-import { Button } from "@cloudflare/kumo/components/button";
-import { Input } from "@cloudflare/kumo/components/input";
-import { Text } from "@cloudflare/kumo/components/text";
-import { Slider } from "@cloudflare/kumo/primitives/slider";
-import { Minus, Plus } from "@phosphor-icons/react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Text } from "./ui/text";
+import { Slider } from "./ui/slider";
+import { Minus, Plus } from "lucide-react";
 import { EmergencyStop } from "./EmergencyStop";
 
 interface Props {
@@ -121,25 +121,17 @@ function ChannelRow({
           {pulse ? ` · ${pulse}` : ""}
         </Text>
       </div>
-      <Slider.Root
+      <Slider
         disabled={disabled}
         min={0}
         max={cap}
         step={1}
         value={[value]}
         onValueChange={(next) => {
-          const n = Array.isArray(next) ? next[0] : next;
+          const n = next[0];
           if (typeof n === "number") onSet(n);
         }}
-        className="flex w-full touch-none select-none items-center"
-      >
-        <Slider.Control className="flex h-10 w-full items-center">
-          <Slider.Track className="relative h-1.5 w-full rounded-full bg-kumo-fill">
-            <Slider.Indicator className="absolute h-full rounded-full bg-[var(--dg-gold)]" />
-            <Slider.Thumb className="absolute top-1/2 size-4 -translate-y-1/2 rounded-full bg-[var(--dg-gold)] shadow-xs ring-2 ring-[var(--dg-gold)]" />
-          </Slider.Track>
-        </Slider.Control>
-      </Slider.Root>
+      />
       <div className="flex items-center gap-2">
         <Button
           size="sm"

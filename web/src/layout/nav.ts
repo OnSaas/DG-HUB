@@ -1,16 +1,16 @@
 export const NAV = [
-  { to: "/admin/devices", label: "设备", match: "exact" as const },
-  { to: "/admin/mcp", label: "MCP", match: "prefix" as const },
+  { to: "/admin/devices", key: "nav.devices", match: "exact" as const },
+  { to: "/admin/mcp", key: "nav.mcp", match: "prefix" as const },
 ];
 
 export function deviceNav(deviceId: string) {
   return [
-    { to: "/admin/devices", label: "设备", match: "exact" as const },
-    { to: `/admin/devices/${deviceId}`, label: "控制台", match: "exact" as const },
-    { to: `/admin/devices/${deviceId}/pair`, label: "配对", match: "prefix" as const },
-    { to: `/admin/devices/${deviceId}/waves`, label: "波形", match: "prefix" as const },
-    { to: `/admin/devices/${deviceId}/records`, label: "记录", match: "prefix" as const },
-    { to: `/admin/devices/${deviceId}/settings`, label: "设置", match: "prefix" as const },
-    { to: "/admin/mcp", label: "MCP", match: "prefix" as const },
+    { to: "/admin/devices", key: "nav.devices", match: "exact" as const },
+    { to: `/admin/devices/${deviceId}`, key: "nav.console", match: "exact" as const },
+    { to: `/admin/devices/${deviceId}/pair`, key: "nav.pair", match: "prefix" as const },
+    { to: `/admin/devices/${deviceId}/waves`, key: "nav.waves", match: "prefix" as const },
+    { to: `/admin/devices/${deviceId}/records`, key: "nav.records", match: "prefix" as const },
+    { to: `/admin/devices/${deviceId}/settings`, key: "nav.settings", match: "prefix" as const },
+    { to: "/admin/mcp", key: "nav.mcp", match: "prefix" as const },
   ];
 }

@@ -1,5 +1,5 @@
-import { Button } from "@cloudflare/kumo/components/button";
-import { Text } from "@cloudflare/kumo/components/text";
+import { Button } from "./ui/button";
+import { Text } from "./ui/text";
 import type { ReactNode } from "react";
 
 interface Props {

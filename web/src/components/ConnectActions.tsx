@@ -1,65 +1,60 @@
-import { Button } from "@cloudflare/kumo/components/button";
-import { Dialog } from "@cloudflare/kumo/components/dialog";
-import { Plugs, PlugsConnected } from "@phosphor-icons/react";
+import { useState } from "react";
+import { Unplug } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Button } from "./ui/button";
+import { Dialog } from "./ui/dialog";
 import type { ConnState } from "../hooks/useCoyoteSocket";
 
-interface Props {
+export function ConnectActions({
+  state,
+  onConnect,
+  onDisconnect,
+}: {
   state: ConnState;
   onConnect: () => void;
   onDisconnect: () => void;
-}
-
-export function ConnectActions({ state, onConnect, onDisconnect }: Props) {
-  const canConnect =
-    state === "idle" ||
-    state === "disconnected" ||
-    state === "error" ||
-    state === "connecting";
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const canConnect = state === "idle" || state === "disconnected" || state === "error" || state === "connecting";
 
   if (canConnect) {
     return (
-      <Button
-        className="dg-cta"
-        loading={state === "connecting"}
-        icon={Plugs}
-        onClick={onConnect}
-      >
-        连接中继
+      <Button disabled={state === "connecting"} onClick={onConnect}>
+        {t("control.connectRelay")}
       </Button>
     );
   }
 
   return (
-    <Dialog.Root>
-      <Dialog.Trigger
-        render={(props) => (
-          <Button variant="secondary" icon={PlugsConnected} {...props}>
-            断开
-          </Button>
-        )}
-      />
-      <Dialog className="p-6">
-        <Dialog.Title>断开中继？</Dialog.Title>
-        <Dialog.Description>
-          断开后 APP 会收到 controller_disconnected，需要重新扫码。
-        </Dialog.Description>
-        <div className="mt-4 flex justify-end gap-2">
-          <Dialog.Close
-            render={(props) => (
-              <Button variant="secondary" {...props}>
-                取消
+    <>
+      <Button variant="secondary" icon={Unplug} onClick={() => setOpen(true)}>
+        {t("control.disconnect")}
+      </Button>
+      {open ? (
+        <Dialog.Root open onOpenChange={(o) => !o && setOpen(false)}>
+          <Dialog>
+            <Dialog.Title className="font-semibold">{t("control.disconnectConfirm")}</Dialog.Title>
+            <Dialog.Description className="mt-2 text-sm text-[var(--muted)]">
+              {t("control.disconnectDesc")}
+            </Dialog.Description>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setOpen(false)}>
+                {t("common.cancel")}
               </Button>
-            )}
-          />
-          <Dialog.Close
-            render={(props) => (
-              <Button variant="destructive" {...props} onClick={onDisconnect}>
-                断开
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setOpen(false);
+                  onDisconnect();
+                }}
+              >
+                {t("control.disconnect")}
               </Button>
-            )}
-          />
-        </div>
-      </Dialog>
-    </Dialog.Root>
+            </div>
+          </Dialog>
+        </Dialog.Root>
+      ) : null}
+    </>
   );
 }

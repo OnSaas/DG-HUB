@@ -1,20 +1,22 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { ThemeLocaleControls } from "../../layout/ThemeLocaleControls";
 
 export function PublicHomePage() {
+  const { t } = useTranslation();
   return (
     <div className="mx-auto max-w-xl px-4 py-16">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--theme-rgb))]">
-        Public
-      </p>
-      <h1 className="mt-2 text-4xl font-semibold tracking-tight">DG-HUB</h1>
-      <p className="mt-3 text-sm leading-6 text-neutral-500">
-        网页主控 DG-LAB 4.0。公开层不能创建设备、不能控制。管理员请登录。被分享者请打开发给你的链接。
-      </p>
+      <div className="mb-8 flex justify-end">
+        <ThemeLocaleControls />
+      </div>
+      <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">{t("public.kicker")}</p>
+      <h1 className="font-display mt-2 text-4xl font-semibold tracking-tight">DG-HUB</h1>
+      <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{t("public.blurb")}</p>
       <Link
         to="/admin/login"
-        className="mt-8 inline-flex rounded-full bg-white px-5 py-2 text-sm shadow-xl shadow-black/5"
+        className="mt-8 inline-flex h-10 items-center rounded-[8px] bg-[var(--primary)] px-5 text-sm text-[var(--primary-fg)]"
       >
-        管理员登录
+        {t("public.adminLogin")}
       </Link>
     </div>
   );
