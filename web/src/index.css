@@ -138,6 +138,13 @@ body {
 }
 
 @media (max-width: 767px) {
+  /* 小屏：侧栏不占文档流，只保留顶栏汉堡打开的抽屉 */
+  .dg-shell > aside[data-sidebar="sidebar"]:not([data-mobile="true"]) {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+  }
+
   .dg-content {
     padding: 16px 16px max(16px, env(safe-area-inset-bottom));
   }

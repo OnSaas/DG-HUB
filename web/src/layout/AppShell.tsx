@@ -5,32 +5,60 @@ import { AppSidebar } from "./AppSidebar";
 import { AppTopbar } from "./AppTopbar";
 
 const COLLAPSE_KEY = "coyote.sidebar.collapsed";
+const MOBILE_BP = 768;
+
+function useIsMobile(breakpoint = MOBILE_BP) {
+  const query = `(max-width: ${breakpoint - 1}px)`;
+  const [mobile, setMobile] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia(query).matches : false,
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia(query);
+    const apply = () => setMobile(mql.matches);
+    apply();
+    mql.addEventListener("change", apply);
+    return () => mql.removeEventListener("change", apply);
+  }, [query]);
+
+  return mobile;
+}
 
 export function AppShell() {
-  const [open, setOpen] = useState(true);
+  const isMobile = useIsMobile();
+  const [desktopOpen, setDesktopOpen] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     try {
-      setOpen(localStorage.getItem(COLLAPSE_KEY) !== "1");
+      setDesktopOpen(localStorage.getItem(COLLAPSE_KEY) !== "1");
     } catch {
       /* ignore */
     }
   }, []);
 
+  useEffect(() => {
+    if (isMobile) setMobileOpen(false);
+  }, [isMobile]);
+
   return (
     <Sidebar.Provider
-      open={open}
+      open={isMobile ? mobileOpen : desktopOpen}
       onOpenChange={(next) => {
-        setOpen(next);
+        if (isMobile) {
+          setMobileOpen(next);
+          return;
+        }
+        setDesktopOpen(next);
         try {
           localStorage.setItem(COLLAPSE_KEY, next ? "0" : "1");
         } catch {
           /* ignore */
         }
       }}
-      defaultOpen
+      defaultOpen={false}
       collapsible="icon"
-      mobileBreakpoint={768}
+      mobileBreakpoint={MOBILE_BP}
       animationDuration={180}
       style={
         {
