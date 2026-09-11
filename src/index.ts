@@ -6,6 +6,7 @@ import { authenticate, json, unauthorized, forbidden } from "./auth/middleware";
 import { canControlDevice } from "./auth/principal";
 import { getDeviceBySessionId, touchDeviceSeen } from "./db/devices";
 import { newId } from "./lib/crypto";
+import { handleMcp, mcpCors } from "./mcp/server";
 
 export { Session };
 export { Session as DeviceSession };
@@ -22,6 +23,13 @@ export default {
       }
       if (url.pathname.startsWith("/api/")) {
         return handleApi(request, env, url);
+      }
+      if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) {
+        if (request.method === "OPTIONS") {
+          return new Response(null, { status: 204, headers: mcpCors(request) });
+        }
+        const principal = await authenticate(request, env.DB);
+        return handleMcp(request, env, principal);
       }
       if (url.pathname === "/ws" || url.pathname.startsWith("/ws/")) {
         return json({ error: "gone", message: "use authenticated /v4?sid=" }, { status: 410 });

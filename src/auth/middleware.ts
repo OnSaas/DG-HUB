@@ -1,6 +1,6 @@
 import { COOKIE, SHARE_COOKIE, readCookie } from "./cookie";
 import { publicPrincipal, type Principal } from "./principal";
-import { resolveAdmin, resolveShareSession } from "./session";
+import { resolveAdmin, resolveMcpBearer, resolveShareSession } from "./session";
 
 export async function authenticate(request: Request, db: D1Database): Promise<Principal> {
   const adminToken = readCookie(request, COOKIE);
@@ -12,6 +12,11 @@ export async function authenticate(request: Request, db: D1Database): Promise<Pr
   if (shareToken) {
     const share = await resolveShareSession(db, shareToken);
     if (share) return share;
+  }
+  const auth = request.headers.get("Authorization");
+  if (auth) {
+    const mcp = await resolveMcpBearer(db, auth);
+    if (mcp) return mcp;
   }
   return publicPrincipal();
 }

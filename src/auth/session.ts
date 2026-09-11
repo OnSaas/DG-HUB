@@ -1,6 +1,7 @@
 import { Permission, type Principal } from "./principal";
 import { sha256Hex, newId, newToken } from "../lib/crypto";
 import { resolveShareSessionToken } from "../db/shares";
+import { getMcpGrantByTokenHash, parseJsonArray } from "../db/mcp";
 
 const SESSION_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -62,5 +63,29 @@ export async function resolveShareSession(db: D1Database, token: string): Promis
     deviceId: resolved.deviceId,
     shareId: resolved.share.id,
     permissions: resolved.permissions as Principal["permissions"],
+  };
+}
+
+export async function resolveMcpBearer(db: D1Database, token: string): Promise<Principal | null> {
+  const raw = token.startsWith("Bearer ") ? token.slice(7).trim() : token.trim();
+  if (!raw.startsWith("mcp_live_")) return null;
+  const tokenHash = await sha256Hex(raw);
+  const row = await getMcpGrantByTokenHash(db, tokenHash);
+  if (!row || row.revoked_at) return null;
+  if (row.expires_at != null && row.expires_at <= Date.now()) return null;
+  return {
+    type: "MCP",
+    id: row.id,
+    adminId: row.admin_id,
+    scope: row.scope === "all" ? "all" : "devices",
+    deviceIds: parseJsonArray(row.device_ids),
+    caps: {
+      a: row.cap_a,
+      b: row.cap_b,
+      step: row.cap_step,
+      rpm: row.cap_rpm,
+      waveS: row.cap_wave_s,
+    },
+    permissions: parseJsonArray(row.permissions) as Principal["permissions"],
   };
 }

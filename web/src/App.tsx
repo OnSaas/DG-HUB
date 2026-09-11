@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import { AuthProvider } from "./app/auth/AuthProvider";
 import { RequireAdmin } from "./app/RequireAdmin";
 import { LoginPage } from "./features/auth/LoginPage";
+import { McpPage } from "./features/mcp/McpPage";
 import { DeviceSettingsPage } from "./features/devices/DeviceSettingsPage";
 import { DevicesPage } from "./features/devices/DevicesPage";
 import { PublicHomePage } from "./features/public/HomePage";
@@ -42,6 +43,7 @@ export default function App() {
                 <Route path="/admin" element={<Navigate to="/admin/devices" replace />} />
                 <Route path="/admin/devices" element={<DevicesPage />} />
                 <Route path="/admin/settings" element={<SettingsPage />} />
+                <Route path="/admin/mcp" element={<McpPage />} />
                 <Route path="/admin/devices/:deviceId" element={<ConsolePage />} />
                 <Route path="/admin/devices/:deviceId/pair" element={<PairPage />} />
                 <Route path="/admin/devices/:deviceId/waves" element={<WavesPage />} />

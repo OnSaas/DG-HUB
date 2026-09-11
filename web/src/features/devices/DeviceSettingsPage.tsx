@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { NeedDevice } from "../../app/LegacyAdminRedirect";
 import { useDeviceState } from "../../app/DeviceProvider";
 import { StatusDot, formatLastSeen } from "../../components/StatusDot";
@@ -92,6 +92,11 @@ export function DeviceSettingsPage() {
       </form>
       {msg ? <p className="mb-4 text-sm text-neutral-500">{msg}</p> : null}
       <SharePanel deviceId={deviceId} />
+      <p className="mt-4 text-sm">
+        <NavLink className="underline" to={`/admin/mcp?device=${deviceId}`}>
+          为这台签发 MCP
+        </NavLink>
+      </p>
       <section className="mt-8 rounded-2xl border border-red-200 p-4">
         <p className="text-sm font-medium text-red-700">危险操作</p>
         <p className="mt-1 text-sm text-neutral-500">删除后无法恢复。</p>

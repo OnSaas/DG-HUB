@@ -64,6 +64,14 @@ export const adminApi = {
     }),
   revokeShare: (id: string, shareId: string) =>
     api<{ ok: boolean }>(`/api/admin/devices/${id}/shares/${shareId}/revoke`, { method: "POST" }),
+  mcpGrants: () => api<{ grants: McpGrant[] }>("/api/admin/mcp/grants"),
+  createMcpGrant: (body: McpGrantInput) =>
+    api<CreatedMcpGrant>("/api/admin/mcp/grants", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  revokeMcpGrant: (id: string) =>
+    api<{ ok: boolean }>(`/api/admin/mcp/grants/${id}/revoke`, { method: "POST" }),
 };
 
 export interface Activity {
@@ -91,4 +99,40 @@ export interface CreatedShare {
   expiresAt: number | null;
   permissions: string[];
   passwordProtected: boolean;
+}
+
+export interface McpGrant {
+  id: string;
+  name: string;
+  scope: "all" | "devices";
+  deviceIds: string[];
+  permissions: string[];
+  expiresAt: number | null;
+  capA: number;
+  capB: number;
+  capStep: number;
+  capRpm: number | null;
+  capWaveS: number | null;
+  createdAt: number;
+  revokedAt: number | null;
+  revoked: boolean;
+  expired: boolean;
+}
+
+export interface McpGrantInput {
+  name: string;
+  scope: "all" | "devices";
+  deviceIds?: string[];
+  permissions?: string[];
+  expiresAt?: number | null;
+  capA?: number;
+  capB?: number;
+  capStep?: number;
+  capRpm?: number | null;
+  capWaveS?: number | null;
+}
+
+export interface CreatedMcpGrant extends McpGrant {
+  token: string;
+  url: string;
 }

@@ -21,6 +21,7 @@ import {
   sanitizePermissions,
   shareActive,
 } from "../db/shares";
+import { createMcpGrant, grantPublic, listMcpGrants, revokeMcpGrant, sanitizeMcpPerms } from "../db/mcp";
 
 export async function handleAdmin(
   request: Request,
@@ -141,6 +142,28 @@ export async function handleAdmin(
       actorId: principal.id,
       action: "share.revoke",
       payload: { shareId },
+    });
+    return json({ ok: true });
+  }
+
+  if (path === "/mcp/grants" && method === "GET") {
+    const rows = await listMcpGrants(env.DB, principal.id);
+    return json({ grants: rows.map(grantPublic) });
+  }
+  if (path === "/mcp/grants" && method === "POST") {
+    return createMcp(request, env, principal, url);
+  }
+  const mcpRevoke = path.match(/^\/mcp\/grants\/([^/]+)\/revoke$/);
+  if (mcpRevoke && method === "POST") {
+    const id = decodeURIComponent(mcpRevoke[1]!);
+    const rows = await listMcpGrants(env.DB, principal.id);
+    if (!rows.find((r) => r.id === id)) return notFound("grant");
+    await revokeMcpGrant(env.DB, principal.id, id);
+    await insertActivity(env.DB, {
+      actorType: principal.type,
+      actorId: principal.id,
+      action: "mcp.revoke",
+      payload: { grantId: id },
     });
     return json({ ok: true });
   }
@@ -292,6 +315,46 @@ async function createDeviceShare(
       expiresAt: row.expires_at,
       permissions,
       passwordProtected: Boolean(passwordHash),
+    },
+    { status: 201 },
+  );
+}
+
+async function createMcp(
+  request: Request,
+  env: Env,
+  principal: Principal,
+  url: URL,
+): Promise<Response> {
+  const body = await readJson(request);
+  const scope = body.scope === "all" ? "all" : "devices";
+  const deviceIds = Array.isArray(body.deviceIds) ? body.deviceIds.map(String) : [];
+  const expiresAt =
+    body.expiresAt === null || body.expiresAt === undefined ? null : Number(body.expiresAt);
+  const { row, token } = await createMcpGrant(env.DB, {
+    adminId: principal.id,
+    name: String(body.name ?? "MCP"),
+    scope,
+    deviceIds,
+    permissions: sanitizeMcpPerms(body.permissions),
+    expiresAt: expiresAt != null && Number.isFinite(expiresAt) ? expiresAt : null,
+    capA: Number(body.capA ?? 200),
+    capB: Number(body.capB ?? 200),
+    capStep: Number(body.capStep ?? 10),
+    capRpm: body.capRpm == null ? 30 : Number(body.capRpm),
+    capWaveS: body.capWaveS == null ? 30 : Number(body.capWaveS),
+  });
+  await insertActivity(env.DB, {
+    actorType: principal.type,
+    actorId: principal.id,
+    action: "mcp.create",
+    payload: { grantId: row.id, scope },
+  });
+  return json(
+    {
+      ...grantPublic(row),
+      token,
+      url: `${url.origin}/mcp`,
     },
     { status: 201 },
   );

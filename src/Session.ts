@@ -7,6 +7,8 @@ export class Session extends DurableObject<Env> {
   private apps = new Map<string, WebSocket>();
   private lastActivity = Date.now();
   private sessionKey: string | null = null;
+  private slotId: string | null = null;
+  private intensity = { a: 0, b: 0, known: false };
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -16,7 +18,7 @@ export class Session extends DurableObject<Env> {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (request.headers.get("Upgrade") !== "websocket") {
-      return new Response("Expected Upgrade: websocket", { status: 426 });
+      return this.handleInternal(request);
     }
     const role = (url.searchParams.get("role") ?? "controller") as Role;
     const clientId = url.searchParams.get("clientId") ?? crypto.randomUUID();
@@ -61,6 +63,7 @@ export class Session extends DurableObject<Env> {
       return;
     }
     this.broadcastControllers({ type: "message", clientId: attachment.clientId, data: frame.data });
+    this.ingestAppData(frame.data);
   }
 
   async webSocketClose(ws: WebSocket): Promise<void> {
@@ -136,6 +139,57 @@ export class Session extends DurableObject<Env> {
     }
   }
 
+  private async handleInternal(request: Request): Promise<Response> {
+    if (request.method === "GET") return Response.json(this.statusPayload());
+    if (request.method !== "POST") return new Response("method", { status: 405 });
+    let body: { action?: string; data?: unknown };
+    try {
+      body = (await request.json()) as { action?: string; data?: unknown };
+    } catch {
+      return Response.json({ ok: false, error: "bad_json" }, { status: 400 });
+    }
+    if (body.action === "status") return Response.json(this.statusPayload());
+    if (body.action !== "op") return Response.json({ ok: false, error: "unknown_action" }, { status: 400 });
+    if (this.apps.size === 0) return Response.json({ ok: false, error: "device_offline" });
+    this.touch();
+    for (const [, app] of this.apps) {
+      this.send(app, { type: "message", clientId: "mcp", data: body.data });
+    }
+    return Response.json({ ok: true, ...this.statusPayload() });
+  }
+
+  private statusPayload() {
+    return {
+      online: this.apps.size > 0,
+      apps: this.apps.size,
+      controllers: this.controllers.size,
+      slotId: this.slotId,
+      intensity: this.intensity.known ? { a: this.intensity.a, b: this.intensity.b } : null,
+    };
+  }
+
+  private ingestAppData(data: unknown): void {
+    if (!data || typeof data !== "object") return;
+    const rec = data as Record<string, unknown>;
+    const devices = rec.devices ?? rec.slots ?? (rec.result as { devices?: unknown } | undefined)?.devices;
+    const list = Array.isArray(devices) ? devices : Array.isArray(rec.result) ? rec.result : null;
+    if (!list) return;
+    for (const item of list) {
+      if (!item || typeof item !== "object") continue;
+      const d = item as Record<string, unknown>;
+      if (typeof d.slotId === "string") this.slotId = d.slotId;
+      const props = (d.props ?? {}) as Record<string, unknown>;
+      const state = (d.slotState ?? {}) as Record<string, unknown>;
+      const channelA = (state.channelA ?? {}) as Record<string, unknown>;
+      const channelB = (state.channelB ?? {}) as Record<string, unknown>;
+      const a = asNum(props.intensityA) || asNum(channelA.intensity);
+      const b = asNum(props.intensityB) || asNum(channelB.intensity);
+      if (typeof props.intensityA === "number" || typeof channelA.intensity === "number") {
+        this.intensity = { a, b, known: true };
+      }
+    }
+  }
+
   private dropApps(code: number, reason: string): void {
     for (const [, ws] of this.apps) this.close(ws, code, reason);
     this.apps.clear();
@@ -175,4 +229,8 @@ export class Session extends DurableObject<Env> {
     if (existing) return;
     await this.ctx.storage.setAlarm(Date.now() + HEARTBEAT_MS);
   }
+}
+
+function asNum(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }

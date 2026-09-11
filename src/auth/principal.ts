@@ -1,4 +1,4 @@
-export type PrincipalType = "ADMIN" | "SHARE" | "PUBLIC";
+export type PrincipalType = "ADMIN" | "SHARE" | "PUBLIC" | "MCP";
 
 export const Permission = {
   ADMIN: "admin",
@@ -15,11 +15,23 @@ export const Permission = {
 
 export type PermissionName = (typeof Permission)[keyof typeof Permission];
 
+export interface McpCaps {
+  a: number;
+  b: number;
+  step: number;
+  rpm: number | null;
+  waveS: number | null;
+}
+
 export interface Principal {
   type: PrincipalType;
   id: string;
   deviceId?: string;
   shareId?: string;
+  adminId?: string;
+  scope?: "all" | "devices";
+  deviceIds?: string[];
+  caps?: McpCaps;
   permissions: PermissionName[];
 }
 
@@ -30,6 +42,7 @@ export function can(principal: Principal, perm: PermissionName): boolean {
 
 export function canControlDevice(principal: Principal): boolean {
   if (principal.type === "ADMIN") return true;
+  if (principal.type === "MCP") return false;
   return (
     can(principal, Permission.DEVICE_CONTROL) ||
     can(principal, Permission.DEVICE_CONTROL_STRENGTH) ||

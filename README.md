@@ -18,9 +18,12 @@ Workers + Durable Objects + D1。Device 是业务实体，Session DO 只负责�
 - `/admin/login`
 - `/admin/devices` 及 `/admin/devices/:id`（控制台 / 配对 / 波形 / 记录 / 设置）
 - `/admin/settings` 本机偏好
+- `/admin/mcp` 签发 MCP Bearer（仅管理员）
 - `/share/:token`
 
-未登录访问 `/admin/*` 会回登录。匿名 `/v4?sid=` 仍 401。
+未登录访问 `/admin/*` 会回登录。匿名 `/v4?sid=`、`/mcp` 仍 401。
+
+MCP：`POST /mcp` + `Authorization: Bearer mcp_live_...`。范围/时长/A-B 上限在签发时选定。不做本地 BLE。
 
 ## 命令
 
