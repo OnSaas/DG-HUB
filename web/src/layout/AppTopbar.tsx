@@ -2,7 +2,7 @@ import { Badge } from "@cloudflare/kumo/components/badge";
 import { Button } from "@cloudflare/kumo/components/button";
 import { Dialog } from "@cloudflare/kumo/components/dialog";
 import { useKumoToastManager } from "@cloudflare/kumo/components/toast";
-import { CopySimple, List, Stop } from "@phosphor-icons/react";
+import { CopySimple, Lightning, List, Stop } from "@phosphor-icons/react";
 import { useState } from "react";
 import type { ConnState } from "../hooks/useCoyoteSocket";
 import { useConsole } from "../state/ConsoleProvider";
@@ -34,48 +34,67 @@ export function AppTopbar({
     (relay.state === "connected" || relay.state === "paired") && relay.targetId;
   const shortId = relay.targetId ? relay.targetId.slice(0, 8) : "";
 
+  const fireStop = () => {
+    if (settings.confirmStop) setConfirm(true);
+    else emergencyStop();
+  };
+
   return (
-    <header className="sticky top-0 z-40 px-3 pt-[env(safe-area-inset-top)] lg:px-6">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-3">
-        {narrow ? (
-          <Button
-            shape="square"
-            size="sm"
-            variant="ghost"
-            icon={List}
-            aria-label="菜单"
-            onClick={onMenu}
-          />
-        ) : null}
-        <span className="hidden text-sm font-semibold tracking-tight sm:inline">DG-HUB</span>
-        <Badge variant={badge.variant}>{badge.label}</Badge>
-        {showId ? (
-          <button
-            type="button"
-            className="hidden items-center gap-1 font-mono text-xs text-[var(--dg-muted)] sm:inline-flex"
-            onClick={async () => {
-              if (!relay.targetId) return;
-              await navigator.clipboard.writeText(relay.targetId);
-              toast.add({ title: "已复制", variant: "success" });
-            }}
-          >
-            {shortId}
-            <CopySimple size={12} />
-          </button>
-        ) : null}
-        <div className="flex-1" />
-        <Button
-          variant="destructive"
-          size="sm"
-          icon={Stop}
-          onClick={() => {
-            if (settings.confirmStop) setConfirm(true);
-            else emergencyStop();
-          }}
-        >
-          急停
-        </Button>
-      </div>
+    <>
+      {narrow ? (
+        <header className="sticky top-0 z-40 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
+          <div className="dg-capsule">
+            <div className="flex min-w-0 items-center gap-2 py-2 pl-2">
+              <Lightning size={20} weight="fill" className="dg-gold shrink-0" />
+              <span className="truncate text-sm font-semibold tracking-tight">DG-HUB</span>
+            </div>
+            <div className="ml-auto flex shrink-0 items-center gap-0.5 pr-0.5">
+              <Badge variant={badge.variant}>{badge.label}</Badge>
+              <button
+                type="button"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-red-400"
+                aria-label="急停"
+                onClick={fireStop}
+              >
+                <Stop size={18} weight="fill" />
+              </button>
+              <button
+                type="button"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--dg-muted)]"
+                aria-label="菜单"
+                onClick={onMenu}
+              >
+                <List size={20} />
+              </button>
+            </div>
+          </div>
+        </header>
+      ) : (
+        <header className="sticky top-0 z-40 px-6 pt-4">
+          <div className="mx-auto flex h-14 max-w-7xl items-center gap-3">
+            <span className="text-sm font-semibold tracking-tight">DG-HUB</span>
+            <Badge variant={badge.variant}>{badge.label}</Badge>
+            {showId ? (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 font-mono text-xs text-[var(--dg-muted)]"
+                onClick={async () => {
+                  if (!relay.targetId) return;
+                  await navigator.clipboard.writeText(relay.targetId);
+                  toast.add({ title: "已复制", variant: "success" });
+                }}
+              >
+                {shortId}
+                <CopySimple size={12} />
+              </button>
+            ) : null}
+            <div className="flex-1" />
+            <Button variant="destructive" size="sm" icon={Stop} onClick={fireStop}>
+              急停
+            </Button>
+          </div>
+        </header>
+      )}
       {confirm ? (
         <Dialog.Root open onOpenChange={(o) => !o && setConfirm(false)}>
           <Dialog className="p-6">
@@ -98,6 +117,6 @@ export function AppTopbar({
           </Dialog>
         </Dialog.Root>
       ) : null}
-    </header>
+    </>
   );
 }
