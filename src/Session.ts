@@ -1,243 +1,156 @@
 import { DurableObject } from "cloudflare:workers";
+import { Close, HEARTBEAT_MS, IDLE_TIMEOUT_MS, type Attachment, type Role } from "./types";
 import { setDevicePresence } from "./db/devices";
-import {
-  Close,
-  HEARTBEAT_MS,
-  IDLE_TIMEOUT_MS,
-  type Attachment,
-} from "./types";
-
-interface ServerFrame {
-  type: string;
-  clientId?: string;
-  data?: unknown;
-  ts?: number;
-  code?: string;
-  message?: string;
-}
 
 export class Session extends DurableObject<Env> {
-  controllerWs: WebSocket | null = null;
-  controllerId: string | null = null;
-  apps = new Map<string, WebSocket>();
-  lastIdleAt = 0;
+  private controllers = new Map<string, WebSocket>();
+  private apps = new Map<string, WebSocket>();
+  private lastActivity = Date.now();
+  private sessionKey: string | null = null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
-
-    this.ctx.getWebSockets().forEach((ws) => {
-      const att = ws.deserializeAttachment() as Attachment | null;
-      if (!att) return;
-      if (att.role === "controller") {
-        this.controllerWs = ws;
-        this.controllerId = att.clientId;
-      } else {
-        this.apps.set(att.clientId, ws);
-      }
-    });
-
-    if (this.controllerWs && this.apps.size === 0) {
-      this.lastIdleAt = Date.now();
-    }
-
-    this.ctx.setWebSocketAutoResponse(
-      new WebSocketRequestResponsePair("ping", "pong"),
-    );
+    this.restoreAttachments();
   }
 
   async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
     if (request.headers.get("Upgrade") !== "websocket") {
       return new Response("Expected Upgrade: websocket", { status: 426 });
     }
-
-    const url = new URL(request.url);
-    const tid = url.searchParams.get("tid") ?? url.searchParams.get("targetId");
-    const forcedId = url.searchParams.get("clientId");
-    const isApp = Boolean(tid) || url.searchParams.get("role") === "app";
+    const role = (url.searchParams.get("role") ?? "controller") as Role;
+    const clientId = url.searchParams.get("clientId") ?? crypto.randomUUID();
+    const sessionId = url.searchParams.get("sessionId") ?? this.sessionKey ?? clientId;
+    this.sessionKey = sessionId;
 
     const pair = new WebSocketPair();
-    const [client, server] = Object.values(pair);
-    this.ctx.acceptWebSocket(server);
+    const client = pair[0];
+    const server = pair[1];
+    const attachment: Attachment = { role, clientId };
+    server.serializeAttachment(attachment);
 
-    const clientId = forcedId || newClientId();
-    server.serializeAttachment({
-      role: isApp ? "app" : "controller",
-      clientId,
-    } satisfies Attachment);
-
-    this.send(server, { type: "hello", clientId });
-
-    if (isApp) {
-      await this.attachApp(server, clientId);
-    } else {
-      await this.attachController(server, clientId);
-    }
+    if (role === "app") this.attachApp(server, clientId);
+    else this.attachController(server, clientId);
 
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer) {
+  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     if (typeof message !== "string") return;
-    const att = ws.deserializeAttachment() as Attachment | null;
-    if (!att) return;
-
-    let frame: ServerFrame;
+    this.touch();
+    const attachment = ws.deserializeAttachment() as Attachment | null;
+    if (!attachment) return;
+    let parsed: unknown;
     try {
-      frame = JSON.parse(message) as ServerFrame;
+      parsed = JSON.parse(message);
     } catch {
       return;
     }
+    if (!parsed || typeof parsed !== "object") return;
+    const frame = parsed as { type?: string; clientId?: string; data?: unknown };
 
-    if (frame.type === "ping") {
-      this.send(ws, { type: "pong", ts: Date.now() });
+    if (frame.type === "heartbeat" || frame.type === "pong" || frame.type === "ping") {
+      this.send(ws, { type: "heartbeat", ts: Date.now() });
       return;
     }
-    if (frame.type === "heartbeat" || frame.type === "pong") return;
+
     if (frame.type !== "message") return;
-
-    if (att.role === "controller") {
-      if (typeof frame.clientId !== "string") {
-        this.send(ws, {
-          type: "error",
-          code: "bad_request",
-          message: "message.clientId is required",
-        });
-        return;
-      }
-      const app = this.apps.get(frame.clientId);
-      if (!app) {
-        this.send(ws, {
-          type: "error",
-          code: "client_not_found",
-          clientId: frame.clientId,
-        });
-        return;
-      }
-      this.send(app, { type: "message", data: frame.data });
+    if (attachment.role === "controller") {
+      const target = frame.clientId ? this.apps.get(frame.clientId) : undefined;
+      if (target) this.send(target, { type: "message", clientId: attachment.clientId, data: frame.data });
       return;
     }
-
-    if (!this.controllerWs) return;
-    this.send(this.controllerWs, {
-      type: "message",
-      clientId: att.clientId,
-      data: frame.data,
-    });
+    this.broadcastControllers({ type: "message", clientId: attachment.clientId, data: frame.data });
   }
 
-  async webSocketClose(ws: WebSocket) {
-    const att = ws.deserializeAttachment() as Attachment | null;
-    if (!att) return;
-
-    if (att.role === "controller") {
-      if (this.controllerWs === ws) {
-        this.controllerWs = null;
-        this.controllerId = null;
-        for (const [id, app] of this.apps) {
-          this.send(app, {
-            type: "controller_disconnected",
-            clientId: att.clientId,
-          });
-          try {
-            app.close(Close.CONTROLLER_GONE.code, Close.CONTROLLER_GONE.reason);
-          } catch {
-            /* already closed */
-          }
-          this.apps.delete(id);
-        }
+  async webSocketClose(ws: WebSocket): Promise<void> {
+    const attachment = ws.deserializeAttachment() as Attachment | null;
+    if (!attachment) return;
+    if (attachment.role === "controller") {
+      this.controllers.delete(attachment.clientId);
+      this.broadcastControllers({ type: "controller_left", clientId: attachment.clientId });
+      if (this.controllers.size === 0) {
+        this.dropApps(Close.CONTROLLER_GONE.code, Close.CONTROLLER_GONE.reason);
+        if (this.sessionKey) await setDevicePresence(this.env.DB, this.sessionKey, false);
       }
+      await this.ensureAlarm();
       return;
     }
-
-    if (this.apps.get(att.clientId) === ws) {
-      this.apps.delete(att.clientId);
-      if (this.controllerWs) {
-        this.send(this.controllerWs, {
-          type: "client_disconnected",
-          clientId: att.clientId,
-        });
-        if (this.apps.size === 0) {
-          this.lastIdleAt = Date.now();
-          if (this.controllerId) {
-            await setDevicePresence(this.env.DB, this.controllerId, false);
-          }
-          await this.ensureAlarm();
-        }
-      }
+    this.apps.delete(attachment.clientId);
+    this.broadcastControllers({ type: "client_disconnected", clientId: attachment.clientId });
+    if (this.apps.size === 0) {
+      if (this.sessionKey) await setDevicePresence(this.env.DB, this.sessionKey, false);
+      await this.ensureAlarm();
     }
   }
 
-  async webSocketError(ws: WebSocket) {
+  async webSocketError(ws: WebSocket): Promise<void> {
     await this.webSocketClose(ws);
   }
 
-  async alarm() {
-    const sockets = this.ctx.getWebSockets();
-    if (sockets.length === 0) return;
-
-    for (const ws of sockets) {
-      this.send(ws, { type: "heartbeat" });
-    }
-
-    if (this.controllerWs && this.apps.size === 0 && this.lastIdleAt > 0) {
-      if (Date.now() - this.lastIdleAt >= IDLE_TIMEOUT_MS) {
-        this.send(this.controllerWs, { type: "idle_timeout" });
-        try {
-          this.controllerWs.close(Close.IDLE.code, Close.IDLE.reason);
-        } catch {
-          /* ignore */
-        }
-        return;
-      }
-    }
-
-    await this.ctx.storage.setAlarm(Date.now() + HEARTBEAT_MS);
-  }
-
-  private async attachController(server: WebSocket, clientId: string) {
-    if (this.controllerWs && this.controllerWs !== server) {
-      try {
-        this.controllerWs.close(4000, "replaced");
-      } catch {
-        /* ignore */
-      }
-    }
-
-    this.controllerWs = server;
-    this.controllerId = clientId;
-    if (this.apps.size === 0) this.lastIdleAt = Date.now();
-    await this.ensureAlarm();
-  }
-
-  private async attachApp(server: WebSocket, clientId: string) {
-    if (!this.controllerWs || !this.controllerId) {
-      this.send(server, { type: "error", code: "controller_not_found" });
-      try {
-        server.close(
-          Close.CONTROLLER_MISSING.code,
-          Close.CONTROLLER_MISSING.reason,
-        );
-      } catch {
-        /* ignore */
-      }
+  async alarm(): Promise<void> {
+    if (this.apps.size === 0 && Date.now() - this.lastActivity >= IDLE_TIMEOUT_MS) {
+      this.dropApps(Close.IDLE.code, Close.IDLE.reason);
+      for (const [, ws] of this.controllers) this.close(ws, Close.IDLE.code, Close.IDLE.reason);
+      this.controllers.clear();
+      if (this.sessionKey) await setDevicePresence(this.env.DB, this.sessionKey, false);
       return;
     }
-
-    this.apps.set(clientId, server);
-    this.lastIdleAt = 0;
-    this.send(server, {
-      type: "controller_attached",
-      clientId: this.controllerId,
-    });
-    this.send(this.controllerWs, {
-      type: "client_attached",
-      clientId,
-    });
-    await setDevicePresence(this.env.DB, this.controllerId, true);
+    this.broadcastAll({ type: "heartbeat", ts: Date.now() });
     await this.ensureAlarm();
   }
 
-  private send(ws: WebSocket, frame: ServerFrame) {
+  private attachController(ws: WebSocket, clientId: string): void {
+    this.ctx.acceptWebSocket(ws);
+    this.controllers.set(clientId, ws);
+    this.touch();
+    this.send(ws, { type: "hello", clientId });
+    for (const [appId] of this.apps) {
+      this.send(ws, { type: "client_attached", clientId: appId });
+    }
+    void this.ensureAlarm();
+  }
+
+  private attachApp(ws: WebSocket, clientId: string): void {
+    if (this.controllers.size === 0) {
+      this.ctx.acceptWebSocket(ws);
+      this.close(ws, Close.CONTROLLER_MISSING.code, Close.CONTROLLER_MISSING.reason);
+      return;
+    }
+    this.ctx.acceptWebSocket(ws);
+    this.apps.set(clientId, ws);
+    this.touch();
+    this.send(ws, { type: "hello", clientId });
+    this.send(ws, { type: "controller_attached", clientId: this.sessionKey ?? clientId });
+    this.broadcastControllers({ type: "client_attached", clientId });
+    if (this.sessionKey) void setDevicePresence(this.env.DB, this.sessionKey, true);
+    void this.ensureAlarm();
+  }
+
+  private restoreAttachments(): void {
+    for (const ws of this.ctx.getWebSockets()) {
+      const attachment = ws.deserializeAttachment() as Attachment | null;
+      if (!attachment) continue;
+      if (attachment.role === "controller") this.controllers.set(attachment.clientId, ws);
+      else this.apps.set(attachment.clientId, ws);
+    }
+  }
+
+  private dropApps(code: number, reason: string): void {
+    for (const [, ws] of this.apps) this.close(ws, code, reason);
+    this.apps.clear();
+  }
+
+  private broadcastControllers(frame: unknown): void {
+    for (const [, ws] of this.controllers) this.send(ws, frame);
+  }
+
+  private broadcastAll(frame: unknown): void {
+    this.broadcastControllers(frame);
+    for (const [, ws] of this.apps) this.send(ws, frame);
+  }
+
+  private send(ws: WebSocket, frame: unknown): void {
     try {
       ws.send(JSON.stringify(frame));
     } catch {
@@ -245,16 +158,21 @@ export class Session extends DurableObject<Env> {
     }
   }
 
-  private async ensureAlarm() {
-    const existing = await this.ctx.storage.getAlarm();
-    if (existing == null) {
-      await this.ctx.storage.setAlarm(Date.now() + HEARTBEAT_MS);
+  private close(ws: WebSocket, code: number, reason: string): void {
+    try {
+      ws.close(code, reason);
+    } catch {
+      /* already */
     }
   }
-}
 
-export function newClientId(): string {
-  const bytes = new Uint8Array(4);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  private touch(): void {
+    this.lastActivity = Date.now();
+  }
+
+  private async ensureAlarm(): Promise<void> {
+    const existing = await this.ctx.storage.getAlarm();
+    if (existing) return;
+    await this.ctx.storage.setAlarm(Date.now() + HEARTBEAT_MS);
+  }
 }

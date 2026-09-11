@@ -24,6 +24,10 @@ export async function getDeviceBySessionId(db: D1Database, sessionId: string): P
   return db.prepare(`SELECT ${COLS} FROM devices WHERE session_id = ?`).bind(sessionId).first<DeviceRow>();
 }
 
+export async function getDeviceById(db: D1Database, id: string): Promise<DeviceRow | null> {
+  return db.prepare(`SELECT ${COLS} FROM devices WHERE id = ?`).bind(id).first<DeviceRow>();
+}
+
 export async function insertDevice(
   db: D1Database,
   row: { id: string; adminId: string; name: string; sessionId: string; now: number },

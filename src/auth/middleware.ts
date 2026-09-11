@@ -1,12 +1,19 @@
-import { readCookie } from "./cookie";
+import { COOKIE, SHARE_COOKIE, readCookie } from "./cookie";
 import { publicPrincipal, type Principal } from "./principal";
-import { resolveAdmin } from "./session";
+import { resolveAdmin, resolveShareSession } from "./session";
 
 export async function authenticate(request: Request, db: D1Database): Promise<Principal> {
-  const token = readCookie(request);
-  if (!token) return publicPrincipal();
-  const admin = await resolveAdmin(db, token);
-  return admin ?? publicPrincipal();
+  const adminToken = readCookie(request, COOKIE);
+  if (adminToken) {
+    const admin = await resolveAdmin(db, adminToken);
+    if (admin) return admin;
+  }
+  const shareToken = readCookie(request, SHARE_COOKIE);
+  if (shareToken) {
+    const share = await resolveShareSession(db, shareToken);
+    if (share) return share;
+  }
+  return publicPrincipal();
 }
 
 export function json(data: unknown, init: ResponseInit = {}): Response {

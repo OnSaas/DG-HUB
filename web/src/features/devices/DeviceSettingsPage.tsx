@@ -5,6 +5,7 @@ import { StatusDot, formatLastSeen } from "../../components/StatusDot";
 import { PageHeader } from "../../layout/PageHeader";
 import { adminApi } from "../../lib/api/admin";
 import { useConsole } from "../../state/ConsoleProvider";
+import { SharePanel } from "./SharePanel";
 
 export function DeviceSettingsPage() {
   const { device, loading, error, refresh } = useDeviceState();
@@ -88,7 +89,8 @@ export function DeviceSettingsPage() {
         </button>
       </form>
       {msg ? <p className="mb-4 text-sm text-neutral-500">{msg}</p> : null}
-      <section className="rounded-2xl border border-red-200 p-4">
+      <SharePanel deviceId={deviceId} />
+      <section className="mt-8 rounded-2xl border border-red-200 p-4">
         <p className="text-sm font-medium text-red-700">危险操作</p>
         <p className="mt-1 text-sm text-neutral-500">删除后无法恢复。</p>
         <button

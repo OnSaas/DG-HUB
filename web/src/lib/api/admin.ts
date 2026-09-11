@@ -53,6 +53,17 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify({ action, payload }),
     }),
+  listShares: (id: string) => api<{ shares: ShareRecord[] }>(`/api/admin/devices/${id}/shares`),
+  createShare: (
+    id: string,
+    body: { password?: string; expiresAt?: number | null; permissions?: string[] },
+  ) =>
+    api<CreatedShare>(`/api/admin/devices/${id}/shares`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  revokeShare: (id: string, shareId: string) =>
+    api<{ ok: boolean }>(`/api/admin/devices/${id}/shares/${shareId}/revoke`, { method: "POST" }),
 };
 
 export interface Activity {
@@ -60,4 +71,24 @@ export interface Activity {
   action: string;
   payload: string | null;
   created_at: number;
+}
+
+export interface ShareRecord {
+  id: string;
+  createdAt: number;
+  expiresAt: number | null;
+  revokedAt: number | null;
+  passwordProtected: boolean;
+  permissions: string[];
+  expired: boolean;
+  revoked: boolean;
+}
+
+export interface CreatedShare {
+  id: string;
+  token: string;
+  url: string;
+  expiresAt: number | null;
+  permissions: string[];
+  passwordProtected: boolean;
 }

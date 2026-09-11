@@ -1,5 +1,6 @@
 import { Permission, type Principal } from "./principal";
 import { sha256Hex, newId, newToken } from "../lib/crypto";
+import { resolveShareSessionToken } from "../db/shares";
 
 const SESSION_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -49,5 +50,17 @@ export async function resolveAdmin(db: D1Database, token: string): Promise<Princ
       Permission.DEVICE_DELETE,
       Permission.SHARE_MANAGE,
     ],
+  };
+}
+
+export async function resolveShareSession(db: D1Database, token: string): Promise<Principal | null> {
+  const resolved = await resolveShareSessionToken(db, token);
+  if (!resolved) return null;
+  return {
+    type: "SHARE",
+    id: resolved.share.id,
+    deviceId: resolved.deviceId,
+    shareId: resolved.share.id,
+    permissions: resolved.permissions as Principal["permissions"],
   };
 }

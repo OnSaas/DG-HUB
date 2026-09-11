@@ -13,6 +13,14 @@ import {
   updateDevice,
 } from "../db/devices";
 import { insertActivity, insertUsage, listActivities, listUsageByDevice } from "../db/logs";
+import {
+  createShare,
+  listSharesByDevice,
+  parsePermissions,
+  revokeShare,
+  sanitizePermissions,
+  shareActive,
+} from "../db/shares";
 
 export async function handleAdmin(
   request: Request,
@@ -89,6 +97,52 @@ export async function handleAdmin(
       });
       return json({ ok: true }, { status: 201 });
     }
+  }
+
+  const sharesMatch = path.match(/^\/devices\/([^/]+)\/shares$/);
+  if (sharesMatch) {
+    const id = decodeURIComponent(sharesMatch[1]!);
+    const device = await getOwnedDevice(env.DB, principal.id, id);
+    if (!device) return notFound("device");
+    if (method === "GET") {
+      const rows = await listSharesByDevice(env.DB, id);
+      return json({
+        shares: rows.map((row) => {
+          const { expired, revoked } = shareActive(row);
+          return {
+            id: row.id,
+            createdAt: row.created_at,
+            expiresAt: row.expires_at,
+            revokedAt: row.revoked_at,
+            passwordProtected: Boolean(row.password_hash),
+            permissions: parsePermissions(row.permissions),
+            expired,
+            revoked,
+          };
+        }),
+      });
+    }
+    if (method === "POST") return createDeviceShare(request, env, principal, device.id, url);
+  }
+
+  const revokeMatch = path.match(/^\/devices\/([^/]+)\/shares\/([^/]+)\/revoke$/);
+  if (revokeMatch && method === "POST") {
+    const deviceId = decodeURIComponent(revokeMatch[1]!);
+    const shareId = decodeURIComponent(revokeMatch[2]!);
+    const device = await getOwnedDevice(env.DB, principal.id, deviceId);
+    if (!device) return notFound("device");
+    const rows = await listSharesByDevice(env.DB, deviceId);
+    const share = rows.find((r) => r.id === shareId);
+    if (!share) return notFound("share");
+    await revokeShare(env.DB, shareId);
+    await insertActivity(env.DB, {
+      deviceId,
+      actorType: principal.type,
+      actorId: principal.id,
+      action: "share.revoke",
+      payload: { shareId },
+    });
+    return json({ ok: true });
   }
 
   return notFound();
@@ -201,6 +255,46 @@ async function postRecord(
     action: "usage.record",
   });
   return json({ id }, { status: 201 });
+}
+
+async function createDeviceShare(
+  request: Request,
+  env: Env,
+  principal: Principal,
+  deviceId: string,
+  url: URL,
+): Promise<Response> {
+  const body = await readJson(request);
+  const password = body.password != null ? String(body.password) : "";
+  const expiresAt =
+    body.expiresAt === null || body.expiresAt === undefined ? null : Number(body.expiresAt);
+  const permissions = sanitizePermissions(body.permissions);
+  const passwordHash = password ? await hashPassword(password) : null;
+  const { row, token } = await createShare(env.DB, {
+    deviceId,
+    passwordHash,
+    expiresAt: Number.isFinite(expiresAt) ? expiresAt : null,
+    permissions,
+  });
+  await insertActivity(env.DB, {
+    deviceId,
+    actorType: principal.type,
+    actorId: principal.id,
+    action: "share.create",
+    payload: { shareId: row.id, permissions },
+  });
+  const origin = url.origin;
+  return json(
+    {
+      id: row.id,
+      token,
+      url: `${origin}/share/${token}`,
+      expiresAt: row.expires_at,
+      permissions,
+      passwordProtected: Boolean(passwordHash),
+    },
+    { status: 201 },
+  );
 }
 
 async function readJson(request: Request): Promise<Record<string, unknown>> {

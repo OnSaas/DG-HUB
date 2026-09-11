@@ -6,7 +6,7 @@ import { LoginPage } from "./features/auth/LoginPage";
 import { DeviceSettingsPage } from "./features/devices/DeviceSettingsPage";
 import { DevicesPage } from "./features/devices/DevicesPage";
 import { PublicHomePage } from "./features/public/HomePage";
-import { SharePlaceholderPage } from "./features/shares/SharePlaceholderPage";
+import { SharePage } from "./features/shares/SharePage";
 import { AppShell } from "./layout/AppShell";
 import { ConsolePage } from "./pages/ConsolePage";
 import { PairPage } from "./pages/PairPage";
@@ -21,7 +21,7 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<PublicHomePage />} />
-            <Route path="/share/:token" element={<SharePlaceholderPage />} />
+            <Route path="/share/:token" element={<SharePage />} />
             <Route path="/login" element={<Navigate to="/admin/login" replace />} />
             <Route path="/admin/login" element={<LoginPage />} />
             <Route element={<RequireAdmin />}>

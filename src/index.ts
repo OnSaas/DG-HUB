@@ -3,8 +3,9 @@ import { handleAdmin } from "./api/admin";
 import { handlePublic } from "./api/public";
 import { handleShare } from "./api/share";
 import { authenticate, json, unauthorized, forbidden } from "./auth/middleware";
-import { can, Permission } from "./auth/principal";
+import { canControlDevice } from "./auth/principal";
 import { getDeviceBySessionId, touchDeviceSeen } from "./db/devices";
+import { newId } from "./lib/crypto";
 
 export { Session };
 export { Session as DeviceSession };
@@ -56,22 +57,28 @@ async function routeWebSocket(request: Request, env: Env, url: URL): Promise<Res
     const dest = new URL(request.url);
     dest.searchParams.set("role", "app");
     dest.searchParams.set("sessionId", device.session_id);
+    dest.searchParams.set("clientId", newId());
     await touchDeviceSeen(env.DB, device.id);
     return env.SESSION.getByName(device.session_id).fetch(new Request(dest, request));
   }
 
   if (!sid) return unauthorized("sid_or_tid_required");
+  if (!canControlDevice(principal)) return unauthorized("controller_auth_required");
 
-  if (!can(principal, Permission.DEVICE_CONTROL)) {
-    return unauthorized("controller_auth_required");
-  }
   const device = await getDeviceBySessionId(env.DB, sid);
   if (!device) return unauthorized("unknown_device");
   if (principal.type === "ADMIN" && device.admin_id !== principal.id) {
     return forbidden("not_owner");
   }
+  if (principal.type === "SHARE") {
+    if (principal.deviceId !== device.id || device.session_id !== sid) {
+      return forbidden("not_share_device");
+    }
+  }
+
   const dest = new URL(request.url);
   dest.searchParams.set("role", "controller");
-  dest.searchParams.set("clientId", sid);
+  dest.searchParams.set("clientId", newId());
+  dest.searchParams.set("sessionId", device.session_id);
   return env.SESSION.getByName(device.session_id).fetch(new Request(dest, request));
 }
