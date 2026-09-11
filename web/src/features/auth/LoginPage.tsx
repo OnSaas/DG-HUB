@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { adminApi } from "../../lib/api/admin";
 import { useAuth } from "../../app/auth/AuthProvider";
 import { safeNext } from "../../lib/login";
 
 export function LoginPage() {
   const { me, refresh } = useAuth();
-  const nav = useNavigate();
   const [params] = useSearchParams();
   const next = safeNext(params.get("next"));
   const [needed, setNeeded] = useState(false);
@@ -16,8 +15,8 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (me) nav(next, { replace: true });
-  }, [me, nav, next]);
+    if (me) window.location.assign(next);
+  }, [me, next]);
 
   useEffect(() => {
     void adminApi.setupNeeded().then((r) => setNeeded(r.needed));
@@ -31,10 +30,9 @@ export function LoginPage() {
       if (needed) await adminApi.setup(username, password);
       else await adminApi.login(username, password);
       await refresh();
-      nav(next, { replace: true });
+      window.location.assign(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-    } finally {
       setBusy(false);
     }
   }

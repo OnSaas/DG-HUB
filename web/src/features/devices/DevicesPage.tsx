@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { StatusDot, formatLastSeen } from "../../components/StatusDot";
 import { PageHeader } from "../../layout/PageHeader";
 import { adminApi, type Device } from "../../lib/api/admin";
@@ -83,19 +83,19 @@ export function DevicesPage() {
               key={d.id}
               className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/5 px-4 py-3"
             >
-              <Link to={`/admin/devices/${d.id}`} className="min-w-0 flex-1">
+              <NavLink to={`/admin/devices/${d.id}`} className="min-w-0 flex-1">
                 <p className="font-medium">{d.name}</p>
                 <p className="mt-1 text-xs text-neutral-400">
                   <StatusDot online={d.status === "online"} /> · 最后在线 {formatLastSeen(d.last_seen_at)}
                 </p>
-              </Link>
+              </NavLink>
               <div className="flex gap-2">
-                <Link to={`/admin/devices/${d.id}/pair`} className="rounded-xl px-3 py-1.5 text-sm hover:bg-neutral-100">
+                <NavLink to={`/admin/devices/${d.id}/pair`} className="rounded-xl px-3 py-1.5 text-sm hover:bg-neutral-100">
                   配对
-                </Link>
-                <Link to={`/admin/devices/${d.id}`} className="rounded-xl bg-zinc-900 px-3 py-1.5 text-sm text-white">
+                </NavLink>
+                <NavLink to={`/admin/devices/${d.id}`} className="rounded-xl bg-zinc-900 px-3 py-1.5 text-sm text-white">
                   进入
-                </Link>
+                </NavLink>
                 <button
                   type="button"
                   disabled={deleting === d.id}

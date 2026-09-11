@@ -14,7 +14,10 @@ import { RecordsPage } from "./pages/RecordsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { WavesPage } from "./pages/WavesPage";
 
-function DevicesAlias() {
+function LoginAlias() {
+  const { search } = useLocation();
+  return <Navigate to={`/admin/login${search}`} replace />;
+}
   const { pathname, search } = useLocation();
   const rest = pathname.replace(/^\/devices/, "") || "";
   return <Navigate to={`/admin/devices${rest}${search}`} replace />;
@@ -22,13 +25,13 @@ function DevicesAlias() {
 
 export default function App() {
   return (
-    <Toasty>
-      <AuthProvider>
-        <BrowserRouter>
+    <BrowserRouter>
+      <Toasty>
+        <AuthProvider>
           <Routes>
             <Route path="/" element={<PublicHomePage />} />
             <Route path="/share/:token" element={<SharePage />} />
-            <Route path="/login" element={<Navigate to="/admin/login" replace />} />
+            <Route path="/login" element={<LoginAlias />} />
             <Route path="/admin/login" element={<LoginPage />} />
             <Route path="/devices" element={<DevicesAlias />} />
             <Route path="/devices/*" element={<DevicesAlias />} />
@@ -44,10 +47,10 @@ export default function App() {
                 <Route path="/admin/devices/:deviceId/settings" element={<DeviceSettingsPage />} />
               </Route>
             </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<PublicHomePage />} />
           </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </Toasty>
+        </AuthProvider>
+      </Toasty>
+    </BrowserRouter>
   );
 }

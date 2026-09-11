@@ -1,10 +1,9 @@
 import { Lightning } from "@phosphor-icons/react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../app/auth/AuthProvider";
 import { NAV, deviceNav } from "./nav";
 
 export function AppSidebar() {
-  const loc = useLocation();
   const nav = useNavigate();
   const { deviceId } = useParams();
   const { me, logout } = useAuth();
@@ -12,9 +11,6 @@ export function AppSidebar() {
   const items = deviceId
     ? deviceNav(deviceId)
     : [...NAV, { to: "/admin/settings", label: "偏好", match: "prefix" as const }];
-
-  const active = (to: string, match: "exact" | "prefix") =>
-    match === "exact" ? loc.pathname === to : loc.pathname === to || loc.pathname.startsWith(`${to}/`);
 
   return (
     <div className="rounded-2xl border border-black/10 bg-white p-5">
@@ -30,18 +26,18 @@ export function AppSidebar() {
       <p className="mt-6 px-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">管理</p>
       <nav className="mt-3 flex flex-col gap-2">
         {items.map((item) => (
-          <button
+          <NavLink
             key={item.to}
-            type="button"
-            className={`rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors ${
-              active(item.to, item.match) ? "bg-theme text-[#171717]" : "hover:bg-neutral-100"
-            }`}
-            onClick={() => {
-              if (loc.pathname !== item.to) nav(item.to);
-            }}
+            to={item.to}
+            end={item.match === "exact"}
+            className={({ isActive }) =>
+              `rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors ${
+                isActive ? "bg-theme text-[#171717]" : "hover:bg-neutral-100"
+              }`
+            }
           >
             {item.label}
-          </button>
+          </NavLink>
         ))}
         <button
           type="button"

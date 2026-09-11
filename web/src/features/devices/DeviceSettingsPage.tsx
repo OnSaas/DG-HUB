@@ -53,7 +53,7 @@ export function DeviceSettingsPage() {
     setBusy(true);
     try {
       await adminApi.deleteDevice(deviceId);
-      nav("/devices");
+      nav("/admin/devices");
     } catch (err) {
       setMsg(err instanceof Error ? err.message : String(err));
       setBusy(false);

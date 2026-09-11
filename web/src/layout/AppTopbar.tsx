@@ -2,10 +2,8 @@ import { Button } from "@cloudflare/kumo/components/button";
 import { Dialog } from "@cloudflare/kumo/components/dialog";
 import { Lightning, List, Stop } from "@phosphor-icons/react";
 import { useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { NavLink, useParams } from "react-router-dom";
 import { useConsole } from "../state/ConsoleProvider";
-import { useAuth } from "../app/auth/AuthProvider";
-import { loginHref } from "../lib/login";
 import { NAV, deviceNav } from "./nav";
 
 export function AppTopbar({
@@ -17,10 +15,7 @@ export function AppTopbar({
   onMenu: () => void;
   onCloseMenu: () => void;
 }) {
-  const loc = useLocation();
-  const nav = useNavigate();
   const { deviceId } = useParams();
-  const { me } = useAuth();
   const items = deviceId
     ? deviceNav(deviceId)
     : [...NAV, { to: "/admin/settings", label: "偏好", match: "prefix" as const }];
@@ -28,21 +23,9 @@ export function AppTopbar({
   const [confirm, setConfirm] = useState(false);
 
   const fireStop = () => {
-    if (!me) {
-      nav(loginHref(loc.pathname + loc.search));
-      return;
-    }
     if (settings.confirmStop) setConfirm(true);
     else emergencyStop();
   };
-
-  const go = (to: string) => {
-    if (loc.pathname !== to) nav(to);
-    onCloseMenu();
-  };
-
-  const active = (to: string) =>
-    to === "/" ? loc.pathname === "/" : loc.pathname.startsWith(to);
 
   return (
     <header className="dg-header">
@@ -72,14 +55,15 @@ export function AppTopbar({
           {menuOpen ? (
             <div className="dg-menu-pop">
               {items.map((item) => (
-                <button
+                <NavLink
                   key={item.to}
-                  type="button"
-                  className={`dg-menu-link ${active(item.to) ? "is-active" : ""}`}
-                  onClick={() => go(item.to)}
+                  to={item.to}
+                  end={item.match === "exact"}
+                  className={({ isActive }) => `dg-menu-link ${isActive ? "is-active" : ""}`}
+                  onClick={onCloseMenu}
                 >
                   {item.label}
-                </button>
+                </NavLink>
               ))}
             </div>
           ) : null}

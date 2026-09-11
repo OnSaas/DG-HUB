@@ -1,6 +1,6 @@
 import { Button } from "@cloudflare/kumo/components/button";
 import { Text } from "@cloudflare/kumo/components/text";
-import { useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { ConnectActions } from "../components/ConnectActions";
 import { PairingCard } from "../components/PairingCard";
 import { PageHeader } from "../layout/PageHeader";
@@ -12,7 +12,6 @@ import { useConsole } from "../state/ConsoleProvider";
 export function PairPage() {
   const { device, loading, error } = useDeviceState();
   const { relay } = useConsole();
-  const nav = useNavigate();
   const origin = typeof window === "undefined" ? "" : window.location.origin;
 
   if (loading && !device) return <Text variant="secondary">加载设备…</Text>;
@@ -20,9 +19,9 @@ export function PairPage() {
     return (
       <div className="flex flex-col gap-3">
         <Text variant="body">设备不存在</Text>
-        <Button size="sm" onClick={() => nav("/admin/devices")}>
-          返回设备
-        </Button>
+        <NavLink to="/admin/devices">
+          <Button size="sm">返回设备</Button>
+        </NavLink>
       </div>
     );
   }
@@ -76,7 +75,9 @@ export function PairPage() {
               {relay.deviceName ?? relay.slotId ?? "已接入"} · 可到控制台
             </Text>
           </div>
-          <Button onClick={() => nav(`/admin/devices/${device.id}`)}>进入控制台</Button>
+          <NavLink to={`/admin/devices/${device.id}`}>
+            <Button>进入控制台</Button>
+          </NavLink>
         </section>
       ) : null}
 

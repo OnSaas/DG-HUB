@@ -1,6 +1,6 @@
 import { Button } from "@cloudflare/kumo/components/button";
 import { QrCode } from "@phosphor-icons/react";
-import { useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { NeedDevice } from "../app/LegacyAdminRedirect";
 import { useDeviceState } from "../app/DeviceProvider";
 import { EmptyState } from "../components/EmptyState";
@@ -12,7 +12,6 @@ import { useConsole } from "../state/ConsoleProvider";
 
 export function ConsolePage() {
   const { device, loading, error } = useDeviceState();
-  const nav = useNavigate();
   const { relay, strength, recorder, pulse, canControl, emergencyStop, requirePaired, settings, patchSettings } =
     useConsole();
 
@@ -56,9 +55,11 @@ export function ConsolePage() {
             >
               停止波形
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => nav(`/admin/devices/${device.id}/pair`)}>
-              去配对
-            </Button>
+            <NavLink to={`/admin/devices/${device.id}/pair`}>
+              <Button variant="secondary" size="sm">
+                去配对
+              </Button>
+            </NavLink>
           </div>
         }
       />

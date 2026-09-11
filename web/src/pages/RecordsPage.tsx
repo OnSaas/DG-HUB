@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useDeviceState } from "../app/DeviceProvider";
 import { NeedDevice } from "../app/LegacyAdminRedirect";
 import { PageHeader } from "../layout/PageHeader";
@@ -8,7 +8,6 @@ import { formatClock } from "../lib/records";
 
 export function RecordsPage() {
   const { device, loading, error } = useDeviceState();
-  const nav = useNavigate();
   const [items, setItems] = useState<Activity[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -39,9 +38,7 @@ export function RecordsPage() {
   if (loading && !device) return <p className="text-sm text-neutral-500">加载…</p>;
   if (error) {
     return (
-      <button type="button" onClick={() => nav("/admin/devices")}>
-        设备不存在，返回
-      </button>
+      <Link to="/admin/devices">设备不存在，返回</Link>
     );
   }
   if (!device) return <NeedDevice title="记录" />;
