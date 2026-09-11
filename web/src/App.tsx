@@ -5,6 +5,7 @@ import { RequireAdmin } from "./app/RequireAdmin";
 import { LoginPage } from "./features/auth/LoginPage";
 import { DevicesPage } from "./features/devices/DevicesPage";
 import { PublicHomePage } from "./features/public/HomePage";
+import { SharePlaceholderPage } from "./features/shares/SharePlaceholderPage";
 import { AppShell } from "./layout/AppShell";
 import { ConsolePage } from "./pages/ConsolePage";
 import { PairPage } from "./pages/PairPage";
@@ -19,10 +20,13 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<PublicHomePage />} />
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/share/:token" element={<SharePlaceholderPage />} />
+            <Route path="/login" element={<Navigate to="/admin/login" replace />} />
+            <Route path="/admin/login" element={<LoginPage />} />
             <Route element={<RequireAdmin />}>
               <Route element={<AppShell />}>
-                <Route path="/admin" element={<DevicesPage />} />
+                <Route path="/admin" element={<Navigate to="/admin/devices" replace />} />
+                <Route path="/admin/devices" element={<DevicesPage />} />
                 <Route path="/admin/settings" element={<SettingsPage />} />
                 <Route path="/admin/devices/:deviceId" element={<ConsolePage />} />
                 <Route path="/admin/devices/:deviceId/pair" element={<PairPage />} />

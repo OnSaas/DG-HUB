@@ -13,7 +13,7 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (me) nav("/admin", { replace: true });
+    if (me) nav("/admin/devices", { replace: true });
   }, [me, nav]);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export function LoginPage() {
       if (needed) await adminApi.setup(username, password);
       else await adminApi.login(username, password);
       await refresh();
-      nav("/admin", { replace: true });
+      nav("/admin/devices", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

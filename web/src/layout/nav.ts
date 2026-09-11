@@ -1,5 +1,5 @@
 export const NAV = [
-  { to: "/admin", label: "设备", match: "exact" as const },
+  { to: "/admin/devices", label: "设备", match: "exact" as const },
 ];
 
 export function deviceNav(deviceId: string) {

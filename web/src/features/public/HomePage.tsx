@@ -11,7 +11,7 @@ export function PublicHomePage() {
         这里是公开层。不能创建设备、不能建立控制连接。管理员请登录。
       </p>
       <Link
-        to="/login"
+        to="/admin/login"
         className="mt-8 inline-flex rounded-full bg-white px-5 py-2 text-sm shadow-xl shadow-black/5"
       >
         管理员登录
