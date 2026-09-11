@@ -3,8 +3,8 @@
 
 :root,
 [data-color-mode="dark"] {
-  --theme-rgb: 252 70 107;
-  --theme-hover-rgb: 177 48 73;
+  --theme-rgb: 255 233 157;
+  --theme-hover-rgb: 207 189 129;
   --rin-canvas-rgb: 28 28 30;
   --rin-surface-rgb: 51 51 51;
   --rin-surface-muted-rgb: 64 64 64;
