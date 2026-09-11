@@ -1,83 +1,70 @@
-import { useEffect, useState, type CSSProperties } from "react";
-import { Sidebar } from "@cloudflare/kumo/components/sidebar";
+import { useEffect, useState, type ReactNode } from "react";
 import { Outlet } from "react-router-dom";
-import { AppSidebar } from "./AppSidebar";
+import { AppNav } from "./AppNav";
 import { AppTopbar } from "./AppTopbar";
 
-const COLLAPSE_KEY = "coyote.sidebar.collapsed";
-const MOBILE_BP = 768;
+const BP = 1024;
 
-function useIsMobile(breakpoint = MOBILE_BP) {
-  const query = `(max-width: ${breakpoint - 1}px)`;
-  const [mobile, setMobile] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia(query).matches : false,
+function useIsNarrow() {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia(`(max-width: ${BP - 1}px)`).matches : true,
   );
-
   useEffect(() => {
-    const mql = window.matchMedia(query);
-    const apply = () => setMobile(mql.matches);
+    const mq = window.matchMedia(`(max-width: ${BP - 1}px)`);
+    const apply = () => setNarrow(mq.matches);
     apply();
-    mql.addEventListener("change", apply);
-    return () => mql.removeEventListener("change", apply);
-  }, [query]);
-
-  return mobile;
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return narrow;
 }
 
 export function AppShell() {
-  const isMobile = useIsMobile();
-  const [desktopOpen, setDesktopOpen] = useState(true);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const narrow = useIsNarrow();
+  const [drawer, setDrawer] = useState(false);
 
   useEffect(() => {
-    try {
-      setDesktopOpen(localStorage.getItem(COLLAPSE_KEY) !== "1");
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isMobile) setMobileOpen(false);
-  }, [isMobile]);
+    if (!narrow) setDrawer(false);
+  }, [narrow]);
 
   return (
-    <Sidebar.Provider
-      open={isMobile ? mobileOpen : desktopOpen}
-      onOpenChange={(next) => {
-        if (isMobile) {
-          setMobileOpen(next);
-          return;
-        }
-        setDesktopOpen(next);
-        try {
-          localStorage.setItem(COLLAPSE_KEY, next ? "0" : "1");
-        } catch {
-          /* ignore */
-        }
-      }}
-      defaultOpen={false}
-      collapsible="icon"
-      mobileBreakpoint={MOBILE_BP}
-      animationDuration={180}
-      style={
-        {
-          "--sidebar-width": "240px",
-          "--sidebar-width-icon": "64px",
-        } as CSSProperties
-      }
-    >
-      <div className="dg-shell">
-        <AppSidebar />
+    <div className="dg-shell">
+      <AppTopbar
+        narrow={narrow}
+        onMenu={() => setDrawer(true)}
+      />
+      <div className="dg-frame">
+        {!narrow ? (
+          <aside className="dg-aside">
+            <div className="dg-panel p-5">
+              <AppNav />
+            </div>
+          </aside>
+        ) : null}
         <div className="dg-main">
-          <AppTopbar />
-          <main className="dg-content">
-            <div className="dg-content-inner flex flex-col gap-6">
+          <div className="dg-main-card">
+            <div className="dg-content-inner">
               <Outlet />
             </div>
-          </main>
+          </div>
         </div>
       </div>
-    </Sidebar.Provider>
+      {narrow && drawer ? (
+        <Drawer onClose={() => setDrawer(false)}>
+          <AppNav onNavigate={() => setDrawer(false)} />
+        </Drawer>
+      ) : null}
+    </div>
+  );
+}
+
+function Drawer({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+  return (
+    <>
+      <button type="button" className="dg-overlay" aria-label="关闭菜单" onClick={onClose} />
+      <div className="dg-drawer">
+        <div className="dg-drawer-panel">{children}</div>
+      </div>
+    </>
   );
 }

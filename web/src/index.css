@@ -1,16 +1,26 @@
 @import "tailwindcss";
 @import "@cloudflare/kumo/styles";
 
-:root {
-  --dg-bg: #0a0a0a;
-  --dg-sidebar: #0a0a0a;
-  --dg-surface: #1a1a1a;
-  --dg-gold: #e8d48b;
-  --dg-text: #f5f0e6;
-  --dg-muted: #a3a3a3;
-  --dg-border: #2a2a2a;
-  --dg-sidebar-w: 240px;
-  --dg-sidebar-w-icon: 64px;
+:root,
+[data-color-mode="dark"] {
+  --theme-rgb: 252 70 107;
+  --theme-hover-rgb: 177 48 73;
+  --rin-canvas-rgb: 28 28 30;
+  --rin-surface-rgb: 51 51 51;
+  --rin-surface-muted-rgb: 64 64 64;
+  --rin-surface-hover-rgb: 82 82 82;
+  --rin-text-rgb: 250 250 250;
+  --rin-text-muted-rgb: 212 212 216;
+  --rin-border-rgb: 255 255 255;
+  --rin-radius-control: 0.75rem;
+  --rin-radius-surface: 1rem;
+  --dg-bg: rgb(var(--rin-canvas-rgb));
+  --dg-sidebar: rgb(var(--rin-surface-rgb));
+  --dg-surface: rgb(var(--rin-surface-rgb));
+  --dg-gold: rgb(var(--theme-rgb));
+  --dg-text: rgb(var(--rin-text-rgb));
+  --dg-muted: rgb(var(--rin-text-muted-rgb));
+  --dg-border: rgb(var(--rin-border-rgb) / 0.1);
 }
 
 html {
@@ -27,12 +37,13 @@ body {
   margin: 0;
   background: var(--dg-bg);
   color: var(--dg-text);
+  font-family: Cantarell, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 .dg-panel {
   background: var(--dg-surface);
   border: 1px solid var(--dg-border);
-  border-radius: 8px;
+  border-radius: var(--rin-radius-surface);
 }
 
 .dg-gold {
@@ -43,50 +54,64 @@ body {
   color: var(--dg-muted);
 }
 
-.dg-rule {
-  height: 1px;
-  background: var(--dg-border);
-  border: 0;
-}
-
 .dg-nav-active {
-  position: relative;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.dg-nav-active::before {
-  content: "";
-  position: absolute;
-  top: 8px;
-  bottom: 8px;
-  left: 0;
-  width: 3px;
-  border-radius: 2px;
-  background: var(--dg-gold);
+  background: rgb(var(--theme-rgb));
+  color: #fff;
 }
 
 .dg-shell {
-  display: flex;
   min-height: 100dvh;
   background: var(--dg-bg);
   color: var(--dg-text);
 }
 
-.dg-main {
+.dg-frame {
+  margin: 0 auto;
   display: flex;
-  min-width: 0;
-  flex: 1 1 auto;
+  width: 100%;
+  max-width: 80rem;
   flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom));
 }
 
-.dg-content {
+@media (min-width: 1024px) {
+  .dg-frame {
+    flex-direction: row;
+    padding: 1.5rem 1.5rem 2rem;
+  }
+}
+
+.dg-aside {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+  .dg-aside {
+    position: sticky;
+    top: 1.5rem;
+    width: 18rem;
+    align-self: flex-start;
+  }
+}
+
+.dg-main {
+  min-width: 0;
   flex: 1 1 auto;
-  overflow: auto;
-  padding: 24px 24px max(24px, env(safe-area-inset-bottom));
+}
+
+.dg-main-card {
+  border: 1px solid var(--dg-border);
+  border-radius: var(--rin-radius-surface);
+  background: var(--dg-surface);
+  padding: 1.5rem;
 }
 
 .dg-content-inner {
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .dg-form-row {
@@ -111,14 +136,14 @@ body {
 .dg-kpi {
   display: grid;
   gap: 1px;
-  background: var(--dg-border);
-  border: 1px solid var(--dg-border);
-  border-radius: 8px;
   overflow: hidden;
+  border: 1px solid var(--dg-border);
+  border-radius: var(--rin-radius-surface);
+  background: var(--dg-border);
 }
 
 .dg-kpi > * {
-  background: var(--dg-surface);
+  background: rgb(var(--rin-surface-muted-rgb));
   padding: 16px 20px;
 }
 
@@ -137,18 +162,33 @@ body {
   font-size: 12px;
 }
 
+.dg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgb(0 0 0 / 0.68);
+  backdrop-filter: blur(8px);
+}
+
+.dg-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 51;
+  width: min(18rem, 86vw);
+  padding: 0.75rem;
+}
+
+.dg-drawer-panel {
+  height: 100%;
+  overflow: auto;
+  border: 1px solid var(--dg-border);
+  border-radius: 1rem;
+  background: rgb(var(--rin-surface-rgb) / 0.92);
+  padding: 1.25rem;
+  box-shadow: 0 28px 90px rgb(0 0 0 / 0.5);
+}
+
 @media (max-width: 767px) {
-  /* 小屏：侧栏不占文档流，只保留顶栏汉堡打开的抽屉 */
-  .dg-shell > aside[data-sidebar="sidebar"]:not([data-mobile="true"]) {
-    display: none !important;
-    width: 0 !important;
-    min-width: 0 !important;
-  }
-
-  .dg-content {
-    padding: 16px 16px max(16px, env(safe-area-inset-bottom));
-  }
-
   .dg-table-row {
     grid-template-columns: 1fr auto;
     gap: 8px;
@@ -157,10 +197,8 @@ body {
   .dg-table-head {
     display: none;
   }
-}
 
-.dg-cta {
-  background: var(--dg-gold) !important;
-  color: #1a1208 !important;
-  border-color: var(--dg-gold) !important;
+  .dg-main-card {
+    padding: 1rem;
+  }
 }

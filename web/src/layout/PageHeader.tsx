@@ -1,4 +1,3 @@
-import { Text } from "@cloudflare/kumo/components/text";
 import type { ReactNode } from "react";
 
 interface Props {
@@ -9,15 +8,16 @@ interface Props {
 
 export function PageHeader({ title, description, actions }: Props) {
   return (
-    <div className="mb-2 flex flex-wrap items-start justify-between gap-4">
+    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--dg-border)] pb-5">
       <div className="min-w-0">
-        <h1 className="m-0 text-[28px] font-semibold leading-8 tracking-tight text-[var(--dg-text)]">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--theme-rgb)/0.7)]">
+          DG-HUB
+        </p>
+        <h1 className="mt-2 m-0 break-words text-3xl font-semibold tracking-[-0.03em]">
           {title}
         </h1>
         {description ? (
-          <Text variant="secondary" size="sm">
-            {description}
-          </Text>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--dg-muted)]">{description}</p>
         ) : null}
       </div>
       {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}

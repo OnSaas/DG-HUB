@@ -1,9 +1,8 @@
 import { Badge } from "@cloudflare/kumo/components/badge";
 import { Button } from "@cloudflare/kumo/components/button";
 import { Dialog } from "@cloudflare/kumo/components/dialog";
-import { Sidebar } from "@cloudflare/kumo/components/sidebar";
 import { useKumoToastManager } from "@cloudflare/kumo/components/toast";
-import { CopySimple, Stop } from "@phosphor-icons/react";
+import { CopySimple, List, Stop } from "@phosphor-icons/react";
 import { useState } from "react";
 import type { ConnState } from "../hooks/useCoyoteSocket";
 import { useConsole } from "../state/ConsoleProvider";
@@ -20,7 +19,13 @@ const STATE_BADGE: Record<
   error: { label: "错误", variant: "error" },
 };
 
-export function AppTopbar() {
+export function AppTopbar({
+  narrow,
+  onMenu,
+}: {
+  narrow: boolean;
+  onMenu: () => void;
+}) {
   const { relay, emergencyStop, settings } = useConsole();
   const toast = useKumoToastManager();
   const [confirm, setConfirm] = useState(false);
@@ -30,35 +35,47 @@ export function AppTopbar() {
   const shortId = relay.targetId ? relay.targetId.slice(0, 8) : "";
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--dg-border)] bg-[var(--dg-bg)] px-4 pt-[env(safe-area-inset-top)]">
-      <Sidebar.Trigger aria-label="菜单" />
-      <Badge variant={badge.variant}>{badge.label}</Badge>
-      {showId ? (
-        <button
-          type="button"
-          className="hidden items-center gap-1 font-mono text-xs text-[var(--dg-muted)] sm:inline-flex"
-          onClick={async () => {
-            if (!relay.targetId) return;
-            await navigator.clipboard.writeText(relay.targetId);
-            toast.add({ title: "已复制", variant: "success" });
+    <header className="sticky top-0 z-40 px-3 pt-[env(safe-area-inset-top)] lg:px-6">
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-3">
+        {narrow ? (
+          <Button
+            shape="square"
+            size="sm"
+            variant="ghost"
+            icon={List}
+            aria-label="菜单"
+            onClick={onMenu}
+          />
+        ) : null}
+        <span className="hidden text-sm font-semibold tracking-tight sm:inline">DG-HUB</span>
+        <Badge variant={badge.variant}>{badge.label}</Badge>
+        {showId ? (
+          <button
+            type="button"
+            className="hidden items-center gap-1 font-mono text-xs text-[var(--dg-muted)] sm:inline-flex"
+            onClick={async () => {
+              if (!relay.targetId) return;
+              await navigator.clipboard.writeText(relay.targetId);
+              toast.add({ title: "已复制", variant: "success" });
+            }}
+          >
+            {shortId}
+            <CopySimple size={12} />
+          </button>
+        ) : null}
+        <div className="flex-1" />
+        <Button
+          variant="destructive"
+          size="sm"
+          icon={Stop}
+          onClick={() => {
+            if (settings.confirmStop) setConfirm(true);
+            else emergencyStop();
           }}
         >
-          {shortId}
-          <CopySimple size={12} />
-        </button>
-      ) : null}
-      <div className="flex-1" />
-      <Button
-        variant="destructive"
-        size="sm"
-        icon={Stop}
-        onClick={() => {
-          if (settings.confirmStop) setConfirm(true);
-          else emergencyStop();
-        }}
-      >
-        急停
-      </Button>
+          急停
+        </Button>
+      </div>
       {confirm ? (
         <Dialog.Root open onOpenChange={(o) => !o && setConfirm(false)}>
           <Dialog className="p-6">
