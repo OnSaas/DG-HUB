@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDeviceState } from "../app/DeviceProvider";
-import { useAuth } from "../app/auth/AuthProvider";
 import { NeedDevice } from "../app/LegacyAdminRedirect";
 import { PageHeader } from "../layout/PageHeader";
 import { adminApi, type Activity } from "../lib/api/admin";
 import { formatClock } from "../lib/records";
 
 export function RecordsPage() {
-  const { me } = useAuth();
   const { device, loading, error } = useDeviceState();
   const nav = useNavigate();
   const [items, setItems] = useState<Activity[]>([]);
@@ -38,21 +36,10 @@ export function RecordsPage() {
     void load();
   }, [load]);
 
-  if (!me) {
-    return (
-      <>
-        <PageHeader title="记录" description="登录后可查看当前设备的控制操作。" />
-        <p className="rounded-2xl border border-dashed border-black/10 px-4 py-12 text-center text-sm text-neutral-500">
-          空列表。不会写入服务器。
-        </p>
-      </>
-    );
-  }
-
   if (loading && !device) return <p className="text-sm text-neutral-500">加载…</p>;
   if (error) {
     return (
-      <button type="button" onClick={() => nav("/devices")}>
+      <button type="button" onClick={() => nav("/admin/devices")}>
         设备不存在，返回
       </button>
     );

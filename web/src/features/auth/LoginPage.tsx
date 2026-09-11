@@ -81,8 +81,8 @@ export function LoginPage() {
         </button>
       </form>
       <p className="mt-6 text-sm">
-        <Link to="/devices" className="text-neutral-500">
-          返回控制台
+        <Link to="/" className="text-neutral-500">
+          返回公开页
         </Link>
       </p>
     </div>

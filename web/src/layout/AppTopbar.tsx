@@ -21,7 +21,9 @@ export function AppTopbar({
   const nav = useNavigate();
   const { deviceId } = useParams();
   const { me } = useAuth();
-  const items = deviceId ? deviceNav(deviceId) : NAV;
+  const items = deviceId
+    ? deviceNav(deviceId)
+    : [...NAV, { to: "/admin/settings", label: "偏好", match: "prefix" as const }];
   const { emergencyStop, settings } = useConsole();
   const [confirm, setConfirm] = useState(false);
 

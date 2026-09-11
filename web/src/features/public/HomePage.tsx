@@ -8,7 +8,7 @@ export function PublicHomePage() {
       </p>
       <h1 className="mt-2 text-4xl font-semibold tracking-tight">DG-HUB</h1>
       <p className="mt-3 text-sm leading-6 text-neutral-500">
-        这里是公开层。不能创建设备、不能建立控制连接。管理员请登录。
+        网页主控 DG-LAB 4.0。公开层不能创建设备、不能控制。管理员请登录。被分享者请打开发给你的链接。
       </p>
       <Link
         to="/admin/login"

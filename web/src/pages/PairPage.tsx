@@ -4,40 +4,23 @@ import { useNavigate } from "react-router-dom";
 import { ConnectActions } from "../components/ConnectActions";
 import { PairingCard } from "../components/PairingCard";
 import { PageHeader } from "../layout/PageHeader";
-import { useAuth } from "../app/auth/AuthProvider";
 import { NeedDevice } from "../app/LegacyAdminRedirect";
 import { useDeviceState } from "../app/DeviceProvider";
 import { qrPayload } from "../lib/protocol";
-import { loginHref } from "../lib/login";
 import { useConsole } from "../state/ConsoleProvider";
 
 export function PairPage() {
-  const { me } = useAuth();
   const { device, loading, error } = useDeviceState();
   const { relay } = useConsole();
   const nav = useNavigate();
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-
-  if (!me) {
-    return (
-      <>
-        <PageHeader title="配对" description="DG-LAB 4.0 扫码接入。登录后才会生成当前设备的二维码。" />
-        <section className="dg-panel p-6">
-          <p className="text-sm text-neutral-500">无 session 不连 WebSocket。</p>
-          <Button className="mt-4" size="sm" onClick={() => nav(loginHref("/pair"))}>
-            去登录
-          </Button>
-        </section>
-      </>
-    );
-  }
 
   if (loading && !device) return <Text variant="secondary">加载设备…</Text>;
   if (error) {
     return (
       <div className="flex flex-col gap-3">
         <Text variant="body">设备不存在</Text>
-        <Button size="sm" onClick={() => nav("/devices")}>
+        <Button size="sm" onClick={() => nav("/admin/devices")}>
           返回设备
         </Button>
       </div>
@@ -93,7 +76,7 @@ export function PairPage() {
               {relay.deviceName ?? relay.slotId ?? "已接入"} · 可到控制台
             </Text>
           </div>
-          <Button onClick={() => nav(`/devices/${device.id}`)}>进入控制台</Button>
+          <Button onClick={() => nav(`/admin/devices/${device.id}`)}>进入控制台</Button>
         </section>
       ) : null}
 

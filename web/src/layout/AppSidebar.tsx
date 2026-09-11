@@ -1,7 +1,6 @@
 import { Lightning } from "@phosphor-icons/react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../app/auth/AuthProvider";
-import { loginHref } from "../lib/login";
 import { NAV, deviceNav } from "./nav";
 
 export function AppSidebar() {
@@ -10,7 +9,9 @@ export function AppSidebar() {
   const { deviceId } = useParams();
   const { me, logout } = useAuth();
 
-  const items = deviceId ? deviceNav(deviceId) : NAV;
+  const items = deviceId
+    ? deviceNav(deviceId)
+    : [...NAV, { to: "/admin/settings", label: "偏好", match: "prefix" as const }];
 
   const active = (to: string, match: "exact" | "prefix") =>
     match === "exact" ? loc.pathname === to : loc.pathname === to || loc.pathname.startsWith(`${to}/`);
@@ -23,12 +24,10 @@ export function AppSidebar() {
         </div>
         <div className="min-w-0">
           <p className="truncate text-base font-semibold">DG-HUB</p>
-          <p className="truncate text-sm text-neutral-500">{me ? me.username : "浏览"}</p>
+          <p className="truncate text-sm text-neutral-500">{me?.username ?? "Admin"}</p>
         </div>
       </div>
-      <p className="mt-6 px-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
-        {me ? "管理" : "功能"}
-      </p>
+      <p className="mt-6 px-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">管理</p>
       <nav className="mt-3 flex flex-col gap-2">
         {items.map((item) => (
           <button
@@ -44,23 +43,13 @@ export function AppSidebar() {
             {item.label}
           </button>
         ))}
-        {me ? (
-          <button
-            type="button"
-            className="rounded-xl px-4 py-3 text-left text-sm text-neutral-500 hover:bg-neutral-100"
-            onClick={() => void logout().then(() => nav("/devices"))}
-          >
-            退出
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="rounded-xl px-4 py-3 text-left text-sm font-medium hover:bg-neutral-100"
-            onClick={() => nav(loginHref(loc.pathname + loc.search))}
-          >
-            登录
-          </button>
-        )}
+        <button
+          type="button"
+          className="rounded-xl px-4 py-3 text-left text-sm text-neutral-500 hover:bg-neutral-100"
+          onClick={() => void logout().then(() => nav("/"))}
+        >
+          退出
+        </button>
       </nav>
     </div>
   );
