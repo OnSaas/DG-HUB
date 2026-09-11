@@ -2,6 +2,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import { useCallback, useMemo, useState } from "react";
 import { useKumoToastManager } from "@cloudflare/kumo/components/toast";
 import { useCoyoteSocket, type RelayEvent } from "../hooks/useCoyoteSocket";
+import { usePulseHold } from "../hooks/usePulseHold";
 import { useSessionRecorder } from "../hooks/useSessionRecorder";
 import { useStrength } from "../hooks/useStrength";
 import { loadSettings, saveSettings, type Settings } from "../lib/settings";
@@ -10,6 +11,7 @@ interface ConsoleValue {
   relay: ReturnType<typeof useCoyoteSocket>;
   strength: ReturnType<typeof useStrength>;
   recorder: ReturnType<typeof useSessionRecorder>;
+  pulse: ReturnType<typeof usePulseHold>;
   settings: Settings;
   patchSettings: (partial: Partial<Settings>) => void;
   canControl: boolean;
@@ -21,9 +23,7 @@ const Ctx = createContext<ConsoleValue | null>(null);
 
 export function ConsoleProvider({ children }: { children: ReactNode }) {
   const toast = useKumoToastManager();
-  const [settings, setSettings] = useState<Settings>(() =>
-    typeof window === "undefined" ? loadSettings() : loadSettings(),
-  );
+  const [settings, setSettings] = useState<Settings>(() => loadSettings());
 
   const onEvent = useCallback(
     (event: RelayEvent) => {
@@ -63,11 +63,20 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     aLimit: Math.min(relay.strength.aLimit || 200, settings.aCap),
     bLimit: Math.min(relay.strength.bLimit || 200, settings.bCap),
   };
+
+  const pulse = usePulseHold({
+    canControl,
+    slotId: relay.slotId,
+    sendRpc: relay.sendRpc,
+  });
+
   const strength = useStrength({
     canControl,
     remote,
     slotId: relay.slotId,
     sendRpc: relay.sendRpc,
+    linkAB: settings.linkAB,
+    onBeforeStop: () => pulse.stop(),
     onBlocked: () => {
       requirePaired();
     },
@@ -104,6 +113,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       relay,
       strength,
       recorder,
+      pulse,
       settings,
       patchSettings,
       canControl,
@@ -114,6 +124,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       canControl,
       emergencyStop,
       patchSettings,
+      pulse,
       recorder,
       relay,
       requirePaired,

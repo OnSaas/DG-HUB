@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  MAX_STRENGTH_STEP,
   STRENGTH_THROTTLE_MS,
   V4Channel,
   addIntensity,
@@ -18,6 +19,8 @@ interface Options {
   slotId: string | null;
   sendRpc: (req: RpcReq) => boolean;
   onBlocked: () => void;
+  linkAB?: boolean;
+  onBeforeStop?: () => void;
 }
 
 export function useStrength({
@@ -26,6 +29,8 @@ export function useStrength({
   slotId,
   sendRpc,
   onBlocked,
+  linkAB = false,
+  onBeforeStop,
 }: Options) {
   const [local, setLocal] = useState({ a: remote.a, b: remote.b });
   const lastSent = useRef({ a: remote.a, b: remote.b });
@@ -49,16 +54,19 @@ export function useStrength({
       }
       const key = ch === 1 ? "a" : "b";
       const channel: V4ChannelId = ch === 1 ? V4Channel.A : V4Channel.B;
-      const delta = next - lastSent.current[key];
+      let delta = next - lastSent.current[key];
       if (delta === 0) return;
+      if (Math.abs(delta) > MAX_STRENGTH_STEP) {
+        delta = delta > 0 ? MAX_STRENGTH_STEP : -MAX_STRENGTH_STEP;
+      }
       if (sendRpc(addIntensity(slotId, channel, delta))) {
-        lastSent.current[key] = next;
+        lastSent.current[key] = lastSent.current[key] + delta;
       }
     },
     [canControl, onBlocked, sendRpc, slotId],
   );
 
-  const setChannel = useCallback(
+  const setOne = useCallback(
     (ch: Channel, raw: number, immediate = false) => {
       const max = ch === 1 ? remote.aLimit : remote.bLimit;
       const next = Math.max(0, Math.min(max || 200, Math.round(raw)));
@@ -80,6 +88,14 @@ export function useStrength({
     [remote.aLimit, remote.bLimit, sendDelta],
   );
 
+  const setChannel = useCallback(
+    (ch: Channel, raw: number, immediate = false) => {
+      setOne(ch, raw, immediate);
+      if (linkAB) setOne(ch === 1 ? 2 : 1, raw, immediate);
+    },
+    [linkAB, setOne],
+  );
+
   const nudge = useCallback(
     (ch: Channel, up: boolean) => {
       const key = ch === 1 ? "a" : "b";
@@ -93,13 +109,20 @@ export function useStrength({
       onBlocked();
       return false;
     }
+    onBeforeStop?.();
+    sendRpc(clearOperate(slotId));
+    if (lastSent.current.a) {
+      sendRpc(addIntensity(slotId, V4Channel.A, -lastSent.current.a));
+    }
+    if (lastSent.current.b) {
+      sendRpc(addIntensity(slotId, V4Channel.B, -lastSent.current.b));
+    }
     sendRpc(resetIntensity(slotId, V4Channel.A));
     sendRpc(resetIntensity(slotId, V4Channel.B));
-    sendRpc(clearOperate(slotId));
     lastSent.current = { a: 0, b: 0 };
     setLocal({ a: 0, b: 0 });
     return true;
-  }, [canControl, onBlocked, sendRpc, slotId]);
+  }, [canControl, onBeforeStop, onBlocked, sendRpc, slotId]);
 
   return {
     local,

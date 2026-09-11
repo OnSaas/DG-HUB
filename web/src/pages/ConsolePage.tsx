@@ -7,7 +7,7 @@ import { formatDuration } from "../lib/records";
 import { useConsole } from "../state/ConsoleProvider";
 
 export function ConsolePage() {
-  const { relay, strength, recorder, canControl, emergencyStop, requirePaired, settings } =
+  const { relay, strength, recorder, pulse, canControl, emergencyStop, requirePaired, settings, patchSettings } =
     useConsole();
   const paired = relay.state === "paired";
 
@@ -67,6 +67,10 @@ export function ConsolePage() {
             onBlocked={requirePaired}
             showStop
             split
+            linkAB={settings.linkAB}
+            onToggleLink={() => patchSettings({ linkAB: !settings.linkAB })}
+            pulseA={pulse.active.A}
+            pulseB={pulse.active.B}
           />
         </>
       )}

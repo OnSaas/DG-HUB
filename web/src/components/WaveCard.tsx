@@ -6,9 +6,10 @@ interface Props {
   name: string;
   hint?: string;
   canControl: boolean;
-  busyA: boolean;
-  busyB: boolean;
-  onPlay: (ch: 0 | 1) => void;
+  holdingA: boolean;
+  holdingB: boolean;
+  onHold: (ch: 0 | 1) => void;
+  onStop: (ch: 0 | 1) => void;
   onBlocked: () => void;
   extra?: ReactNode;
 }
@@ -17,9 +18,10 @@ export function WaveCard({
   name,
   hint,
   canControl,
-  busyA,
-  busyB,
-  onPlay,
+  holdingA,
+  holdingB,
+  onHold,
+  onStop,
   onBlocked,
   extra,
 }: Props) {
@@ -37,25 +39,24 @@ export function WaveCard({
         <Button
           size="sm"
           disabled={!canControl}
-          loading={busyA}
-          onClick={() => onPlay(0)}
+          variant={holdingA ? "primary" : "secondary"}
+          onClick={() => (holdingA ? onStop(0) : onHold(0))}
           onPointerDown={() => {
             if (!canControl) onBlocked();
           }}
         >
-          下发 A
+          {holdingA ? "停 A" : "循环 A"}
         </Button>
         <Button
           size="sm"
-          variant="secondary"
           disabled={!canControl}
-          loading={busyB}
-          onClick={() => onPlay(1)}
+          variant={holdingB ? "primary" : "secondary"}
+          onClick={() => (holdingB ? onStop(1) : onHold(1))}
           onPointerDown={() => {
             if (!canControl) onBlocked();
           }}
         >
-          下发 B
+          {holdingB ? "停 B" : "循环 B"}
         </Button>
         {extra}
       </div>

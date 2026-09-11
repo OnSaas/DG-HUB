@@ -17,6 +17,10 @@ interface Props {
   onBlocked?: () => void;
   showStop?: boolean;
   split?: boolean;
+  linkAB?: boolean;
+  onToggleLink?: () => void;
+  pulseA?: string | null;
+  pulseB?: string | null;
 }
 
 export function StrengthPanel({
@@ -31,6 +35,10 @@ export function StrengthPanel({
   onBlocked,
   showStop = true,
   split = false,
+  linkAB = false,
+  onToggleLink,
+  pulseA,
+  pulseB,
 }: Props) {
   return (
     <div
@@ -39,6 +47,17 @@ export function StrengthPanel({
         if (!canControl) onBlocked?.();
       }}
     >
+      {onToggleLink ? (
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant={linkAB ? "primary" : "secondary"}
+            onClick={onToggleLink}
+          >
+            {linkAB ? "A/B 已联动" : "A/B 联动"}
+          </Button>
+        </div>
+      ) : null}
       <div className={split ? "grid gap-4 md:grid-cols-2" : "flex flex-col gap-5"}>
         <ChannelRow
           label="A"
@@ -46,6 +65,7 @@ export function StrengthPanel({
           max={aLimit}
           disabled={!canControl}
           boxed={split}
+          pulse={pulseA}
           onSet={(v, imm) => onSet(1, v, imm)}
           onNudge={(up) => onNudge(1, up)}
         />
@@ -55,6 +75,7 @@ export function StrengthPanel({
           max={bLimit}
           disabled={!canControl}
           boxed={split}
+          pulse={pulseB}
           onSet={(v, imm) => onSet(2, v, imm)}
           onNudge={(up) => onNudge(2, up)}
         />
@@ -74,6 +95,7 @@ function ChannelRow({
   max,
   disabled,
   boxed,
+  pulse,
   onSet,
   onNudge,
 }: {
@@ -82,6 +104,7 @@ function ChannelRow({
   max: number;
   disabled: boolean;
   boxed?: boolean;
+  pulse?: string | null;
   onSet: (value: number, immediate?: boolean) => void;
   onNudge: (up: boolean) => void;
 }) {
@@ -95,6 +118,7 @@ function ChannelRow({
         </Text>
         <Text variant="secondary" size="xs">
           {value} / {cap}
+          {pulse ? ` · ${pulse}` : ""}
         </Text>
       </div>
       <Slider.Root

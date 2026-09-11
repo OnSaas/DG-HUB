@@ -9,45 +9,35 @@ import { EmptyState } from "../components/EmptyState";
 import { WaveCard } from "../components/WaveCard";
 import { useUserWaves } from "../hooks/useUserWaves";
 import { PageHeader } from "../layout/PageHeader";
-import { clearOperate, V4Channel } from "../lib/protocol";
-import { WAVE_PRESETS, sendPulse } from "../lib/waves";
-import type { UserWave } from "../lib/pulse/store";
+import { V4Channel } from "../lib/protocol";
+import { WAVE_PRESETS } from "../lib/waves";
 import { useConsole } from "../state/ConsoleProvider";
 
 export function WavesPage() {
-  const { relay, canControl, recorder, requirePaired } = useConsole();
+  const { canControl, recorder, requirePaired, pulse } = useConsole();
   const { waves, importFiles, remove, rename } = useUserWaves();
   const toast = useKumoToastManager();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState("");
   const [removeId, setRemoveId] = useState<string | null>(null);
 
-  function play(name: string, frames: readonly string[], durationMs: number, ch: 0 | 1) {
+  function hold(name: string, frames: readonly string[], ch: 0 | 1) {
     if (!requirePaired()) return;
-    if (!relay.slotId) return;
-    const key = `${name}-${ch}`;
-    setBusy(key);
-    relay.sendRpc(clearOperate(relay.slotId));
-    const ms = Math.max(1000, Math.min(durationMs || 5000, 30_000));
-    const ok = relay.sendRpc(
-      sendPulse(
-        relay.slotId,
-        ch === 0 ? V4Channel.A : V4Channel.B,
-        [...frames],
-        ms,
-      ),
-    );
+    const channel = ch === 0 ? V4Channel.A : V4Channel.B;
+    const ok = pulse.start(channel, name, frames);
     if (ok) {
       recorder.markWave(name);
       toast.add({
-        title: `已下发 ${ch === 0 ? "A" : "B"} · ${Math.round(ms / 1000)}s`,
+        title: `${ch === 0 ? "A" : "B"} 循环「${name}」`,
         variant: "success",
       });
     }
-    window.setTimeout(() => setBusy(null), 800);
+  }
+
+  function stop(ch: 0 | 1) {
+    pulse.stop(ch === 0 ? "A" : "B");
   }
 
   async function onFiles(files: FileList | null) {
@@ -86,7 +76,7 @@ export function WavesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="波形库"
-        description="内置预设与本机导入的 .pulse / zip。"
+        description="官方 24 波形循环下发（本机分批重发）。也可导入 .pulse / zip。"
         actions={
           <>
             <input
@@ -127,17 +117,18 @@ export function WavesPage() {
         <Text variant="heading3" as="h2">
           内置
         </Text>
-        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
+        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]">
           {WAVE_PRESETS.map((w) => (
             <WaveCard
               key={w.id}
               name={w.name}
-              hint="试播 5 秒"
+              hint="循环播放，再点即停"
               canControl={canControl}
-              busyA={busy === `${w.name}-0`}
-              busyB={busy === `${w.name}-1`}
+              holdingA={pulse.active.A === w.name}
+              holdingB={pulse.active.B === w.name}
               onBlocked={() => requirePaired()}
-              onPlay={(ch) => play(w.name, w.frames, 5000, ch)}
+              onHold={(ch) => hold(w.name, w.frames, ch)}
+              onStop={stop}
             />
           ))}
         </div>
@@ -155,17 +146,18 @@ export function WavesPage() {
             action={{ label: "导入", onClick: () => fileRef.current?.click() }}
           />
         ) : (
-          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
+          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]">
             {waves.map((w) => (
               <WaveCard
                 key={w.id}
                 name={w.name}
                 hint={`${Math.max(1, Math.round(w.durationMs / 1000))} 秒 · ${w.frames.length} 帧`}
                 canControl={canControl}
-                busyA={busy === `${w.name}-0`}
-                busyB={busy === `${w.name}-1`}
+                holdingA={pulse.active.A === w.name}
+                holdingB={pulse.active.B === w.name}
                 onBlocked={() => requirePaired()}
-                onPlay={(ch) => playUser(w, ch)}
+                onHold={(ch) => hold(w.name, w.frames, ch)}
+                onStop={stop}
                 extra={
                   <>
                     <Button
@@ -193,7 +185,7 @@ export function WavesPage() {
         )}
       </section>
       <Text variant="secondary" size="xs">
-        可视化编辑器下一步再做。可把 .pulse / zip 拖进本页。
+        波形数据来自 dglab-kit（MIT）。循环不依赖 App 的 d=0。
       </Text>
 
       {renameId ? (
@@ -249,8 +241,4 @@ export function WavesPage() {
       ) : null}
     </div>
   );
-
-  function playUser(w: UserWave, ch: 0 | 1) {
-    play(w.name, w.frames, w.durationMs || 5000, ch);
-  }
 }

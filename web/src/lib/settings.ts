@@ -7,6 +7,7 @@ export interface Settings {
   autoSave: boolean;
   askNote: boolean;
   sidebarOpen: boolean;
+  linkAB: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -16,6 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoSave: true,
   askNote: false,
   sidebarOpen: true,
+  linkAB: false,
 };
 
 export function loadSettings(): Settings {

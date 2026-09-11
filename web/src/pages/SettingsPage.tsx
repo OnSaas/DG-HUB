@@ -74,6 +74,16 @@ export function SettingsPage() {
             />
           }
         />
+        <FormRow
+          label="A/B 联动"
+          hint="调一侧强度时另一侧跟着走"
+          control={
+            <Switch
+              checked={settings.linkAB}
+              onCheckedChange={(v) => patchSettings({ linkAB: v })}
+            />
+          }
+        />
       </section>
 
       <section className="dg-panel px-5 py-2">
