@@ -48,12 +48,6 @@ body {
   padding: 1rem 1rem 0;
 }
 
-@media (min-width: 768px) {
-  .dg-header {
-    padding: 1rem 2rem 0;
-  }
-}
-
 .dg-capsule {
   display: flex;
   align-items: center;
@@ -63,49 +57,65 @@ body {
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.06);
 }
 
-.dg-capsule-center {
-  display: flex;
-  min-width: 0;
-  max-width: 100%;
-  align-items: center;
-  overflow-x: auto;
-  border-radius: 9999px;
-  background: #fff;
-  padding: 0 0.5rem;
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.06);
-}
-
-.dg-nav-link {
-  white-space: nowrap;
-  padding: 0.85rem 0.75rem;
-  font-size: 15px;
-  color: rgb(var(--rin-text-rgb));
-  transition: color 0.2s;
-}
-
-.dg-nav-link:hover,
-.dg-nav-link.is-active {
-  color: #c4a35a;
-}
-
-.dg-pad {
+.dg-frame {
   margin: 0 auto;
+  display: flex;
   width: 100%;
   max-width: 80rem;
-  padding: 2rem 1rem 3rem;
-}
-
-@media (min-width: 768px) {
-  .dg-pad {
-    padding: 2.5rem 3rem 4rem;
-  }
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 1rem max(1.5rem, env(safe-area-inset-bottom));
 }
 
 @media (min-width: 1024px) {
-  .dg-pad {
-    padding-left: 4rem;
-    padding-right: 4rem;
+  .dg-frame {
+    flex-direction: row;
+    padding: 1.5rem 1.5rem 2rem;
   }
+}
+
+.dg-aside {
+  width: 18rem;
+  flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+  .dg-aside {
+    position: sticky;
+    top: 1.5rem;
+    align-self: flex-start;
+  }
+}
+
+.dg-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.dg-menu-pop {
+  position: absolute;
+  top: calc(100% + 1rem);
+  right: 0;
+  z-index: 50;
+  width: min(50vw, 16rem);
+  border-radius: 1rem;
+  border: 1px solid rgb(0 0 0 / 0.1);
+  background: #fff;
+  padding: 0.5rem;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.12);
+}
+
+.dg-menu-link {
+  display: block;
+  width: 100%;
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.dg-menu-link.is-active {
+  color: #c4a35a;
 }
 
 .dg-panel {
@@ -116,6 +126,10 @@ body {
 
 .dg-gold {
   color: #c4a35a;
+}
+
+.bg-theme {
+  background: rgb(var(--theme-rgb));
 }
 
 .dg-muted {
@@ -168,32 +182,6 @@ body {
   border-top: 0;
   color: var(--dg-muted);
   font-size: 12px;
-}
-
-.dg-menu-pop {
-  position: absolute;
-  top: calc(100% + 0.75rem);
-  right: 1rem;
-  z-index: 50;
-  width: min(50vw, 16rem);
-  border-radius: 1rem;
-  border: 1px solid rgb(0 0 0 / 0.08);
-  background: #fff;
-  padding: 0.5rem;
-  box-shadow: 0 16px 40px rgb(0 0 0 / 0.12);
-}
-
-.dg-menu-link {
-  display: block;
-  width: 100%;
-  border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
-  text-align: left;
-  font-size: 0.875rem;
-}
-
-.dg-menu-link.is-active {
-  color: #c4a35a;
 }
 
 @media (max-width: 767px) {

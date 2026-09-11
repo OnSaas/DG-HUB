@@ -17,7 +17,7 @@ export function AppTopbar({
 }) {
   const loc = useLocation();
   const nav = useNavigate();
-  const { emergencyStop, settings, relay } = useConsole();
+  const { emergencyStop, settings } = useConsole();
   const [confirm, setConfirm] = useState(false);
 
   const fireStop = () => {
@@ -35,80 +35,52 @@ export function AppTopbar({
 
   return (
     <header className="dg-header">
-      {/* 小屏：整条白胶囊 */}
-      <div className="flex md:hidden">
-        <div className="dg-capsule">
-          <div className="flex items-center gap-2 py-2 pl-4">
-            <Lightning size={18} weight="fill" className="dg-gold" />
-            <span className="text-[15px] font-semibold">DG-HUB</span>
-          </div>
-          <div className="ml-auto flex items-center pr-1">
-            <button
-              type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-full text-zinc-500"
-              aria-label="急停"
-              onClick={fireStop}
-            >
-              <Stop size={18} weight="fill" />
-            </button>
-            <button
-              type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-full text-zinc-500"
-              aria-label="菜单"
-              onClick={onMenu}
-            >
-              <List size={20} />
-            </button>
-          </div>
+      <div className="dg-capsule">
+        <div className="flex items-center gap-2 py-2 pl-4">
+          <Lightning size={18} weight="fill" className="dg-gold" />
+          <span className="text-[15px] font-semibold">DG-HUB</span>
+        </div>
+        <div className="relative ml-auto flex items-center pr-1">
+          <button
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-500"
+            aria-label="急停"
+            onClick={fireStop}
+          >
+            <Stop size={18} weight="fill" />
+          </button>
+          <button
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-500"
+            aria-label="菜单"
+            aria-expanded={menuOpen}
+            onClick={onMenu}
+          >
+            <List size={20} />
+          </button>
+          {menuOpen ? (
+            <div className="dg-menu-pop">
+              {NAV.map((item) => (
+                <button
+                  key={item.to}
+                  type="button"
+                  className={`dg-menu-link ${active(item.to) ? "is-active" : ""}`}
+                  onClick={() => go(item.to)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
-
-      {/* 桌面：左品牌 · 中胶囊导航 · 右急停 */}
-      <div className="hidden items-center justify-between gap-8 md:flex">
-        <div className="flex items-center gap-2">
-          <Lightning size={20} weight="fill" className="dg-gold" />
-          <span className="text-base font-semibold">DG-HUB</span>
-        </div>
-        <div className="flex min-w-0 flex-1 justify-center">
-          <div className="dg-capsule-center">
-            {NAV.map((item) => (
-              <button
-                key={item.to}
-                type="button"
-                className={`dg-nav-link ${active(item.to) ? "is-active" : ""}`}
-                onClick={() => go(item.to)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-zinc-400">
-            {relay.state === "paired" ? "已配对" : relay.state === "connected" ? "已连接" : "未连接"}
-          </span>
-          <Button variant="destructive" size="sm" icon={Stop} onClick={fireStop}>
-            急停
-          </Button>
-        </div>
-      </div>
-
       {menuOpen ? (
-        <>
-          <button type="button" className="fixed inset-0 z-40 bg-black/30" aria-label="关闭" onClick={onCloseMenu} />
-          <div className="dg-menu-pop z-50">
-            {NAV.map((item) => (
-              <button
-                key={item.to}
-                type="button"
-                className={`dg-menu-link ${active(item.to) ? "is-active" : ""}`}
-                onClick={() => go(item.to)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </>
+        <button
+          type="button"
+          className="fixed inset-0 z-30 bg-black/30"
+          aria-label="关闭选单"
+          onClick={onCloseMenu}
+        />
       ) : null}
 
       {confirm ? (
