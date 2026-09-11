@@ -4,6 +4,7 @@ import {
   pickDevice,
   qrPayload,
   readIntensity,
+  relayWsUrl,
   rpcReq,
   type RemoteDevice,
   type RpcReq,
@@ -45,6 +46,42 @@ function defaultRelayOrigin(): string {
   return window.location.origin;
 }
 
+function deepMerge(
+  base: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    const cur = out[key];
+    if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      cur &&
+      typeof cur === "object" &&
+      !Array.isArray(cur)
+    ) {
+      out[key] = deepMerge(
+        cur as Record<string, unknown>,
+        value as Record<string, unknown>,
+      );
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+function asDevices(value: unknown): RemoteDevice[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (d): d is RemoteDevice =>
+      Boolean(d) &&
+      typeof d === "object" &&
+      typeof (d as RemoteDevice).slotId === "string",
+  );
+}
+
 export function useCoyoteSocket(onEvent: (event: RelayEvent) => void) {
   const [state, setState] = useState<ConnState>("idle");
   const [targetId, setTargetId] = useState<string | null>(null);
@@ -65,9 +102,7 @@ export function useCoyoteSocket(onEvent: (event: RelayEvent) => void) {
 
   const applyDeviceList = useCallback((list: RemoteDevice[]) => {
     setDevices(list);
-    const coyote = list.find(
-      (d) => d.type === "COYOTE_030" || d.type === "COYOTE_020" || d.slotId,
-    );
+    const coyote = pickDevice(list);
     if (coyote) setStrength(readIntensity(coyote));
   }, []);
 
@@ -93,7 +128,7 @@ export function useCoyoteSocket(onEvent: (event: RelayEvent) => void) {
             JSON.stringify({
               type: "message",
               clientId: frame.clientId,
-              data: { t: "req", reqId: crypto.randomUUID(), m: "devices.get" },
+              data: rpcReq("devices.get"),
             }),
           );
         }
@@ -121,7 +156,7 @@ export function useCoyoteSocket(onEvent: (event: RelayEvent) => void) {
         emit({
           kind: "error",
           title: "中继错误",
-          description: String(frame.code ?? frame.data ?? ""),
+          description: String(frame.code ?? frame.message ?? ""),
         });
         return;
       }
@@ -131,18 +166,18 @@ export function useCoyoteSocket(onEvent: (event: RelayEvent) => void) {
         if (!data || typeof data !== "object") return;
 
         if (data.t === "ev" && data.ev === "devices.snapshot") {
-          applyDeviceList((data.devices as RemoteDevice[]) ?? []);
+          applyDeviceList(asDevices(data.devices));
           return;
         }
 
         if (data.t === "ev" && data.ev === "devices.patch") {
-          const added = (data.added as RemoteDevice[]) ?? [];
-          const removed = new Set((data.removed as string[]) ?? []);
+          const added = asDevices(data.added);
+          const removed = new Set(
+            (Array.isArray(data.removed) ? data.removed : []).map(String),
+          );
           setDevices((prev) => {
-            const next = prev
-              .filter((d) => !removed.has(d.slotId))
-              .concat(added);
-            const coyote = next.find((d) => d.slotId);
+            const next = prev.filter((d) => !removed.has(d.slotId)).concat(added);
+            const coyote = pickDevice(next);
             if (coyote) setStrength(readIntensity(coyote));
             return next;
           });
@@ -150,16 +185,22 @@ export function useCoyoteSocket(onEvent: (event: RelayEvent) => void) {
         }
 
         if (data.t === "ev" && data.ev === "slots.patch") {
-          const slots = (data.slots as RemoteDevice[]) ?? [];
+          const slots = asDevices(data.slots);
           setDevices((prev) => {
             const map = new Map(prev.map((d) => [d.slotId, d]));
             for (const slot of slots) {
-              const cur = map.get(slot.slotId);
-              if (!cur) continue;
+              const cur = map.get(slot.slotId) ?? {
+                slotId: slot.slotId,
+                name: slot.name ?? slot.slotId,
+                type: slot.type ?? "",
+                props: {},
+                slotState: {},
+              };
               map.set(slot.slotId, {
                 ...cur,
-                props: { ...cur.props, ...slot.props },
-                slotState: { ...cur.slotState, ...slot.slotState },
+                ...slot,
+                props: deepMerge(cur.props ?? {}, slot.props ?? {}),
+                slotState: deepMerge(cur.slotState ?? {}, slot.slotState ?? {}),
               });
             }
             const next = [...map.values()];
@@ -172,10 +213,10 @@ export function useCoyoteSocket(onEvent: (event: RelayEvent) => void) {
 
         if (data.t === "resp" && data.result != null) {
           const result = data.result;
-          if (Array.isArray(result)) applyDeviceList(result as RemoteDevice[]);
+          if (Array.isArray(result)) applyDeviceList(asDevices(result));
           else if (typeof result === "object") {
-            const list = (result as { devices?: RemoteDevice[] }).devices;
-            if (Array.isArray(list)) applyDeviceList(list);
+            const list = (result as { devices?: unknown }).devices;
+            if (Array.isArray(list)) applyDeviceList(asDevices(list));
           }
           return;
         }
@@ -205,71 +246,56 @@ export function useCoyoteSocket(onEvent: (event: RelayEvent) => void) {
     setState("idle");
   }, []);
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(() => {
     disconnect();
     setState("connecting");
     setError(null);
 
-    try {
-      const res = await fetch("/api/create", { method: "POST" });
-      const raw = await res.text();
-      let created: { ok?: boolean; clientId?: string; wsUrl?: string; error?: string };
-      try {
-        created = JSON.parse(raw) as typeof created;
-      } catch {
-        throw new Error(`创建会话失败：返回非 JSON (HTTP ${res.status})`);
-      }
-      if (!res.ok || !created.wsUrl) {
-        throw new Error(created.error || `创建会话失败 HTTP ${res.status}`);
-      }
+    const url = relayWsUrl(relayOrigin);
+    const ws = new WebSocket(url);
+    wsRef.current = ws;
+    let hello = false;
 
-      const ws = new WebSocket(created.wsUrl);
-      wsRef.current = ws;
-      let hello = false;
-
-      const timer = window.setTimeout(() => {
-        if (hello || wsRef.current !== ws) return;
-        ws.close();
-        setError("等待 hello 超时");
-        emit({ kind: "error", title: "连接超时", description: "未收到 hello" });
-        setState("idle");
-      }, 8000);
-
-      ws.onmessage = (ev) => {
-        if (wsRef.current !== ws) return;
-        if (typeof ev.data !== "string") return;
-        try {
-          const parsed: unknown = JSON.parse(ev.data);
-          if (isServerFrame(parsed)) {
-            if (parsed.type === "hello") hello = true;
-            handleFrame(parsed);
-          }
-        } catch {
-          emit({ kind: "error", title: "连接失败", description: "收到非 JSON 帧" });
-        }
-      };
-
-      ws.onerror = () => {
-        if (wsRef.current !== ws) return;
-        window.clearTimeout(timer);
-        setError("WebSocket 连接失败");
-        emit({ kind: "error", title: "连接失败", description: "无法升级到 /ws" });
-        setState("idle");
-      };
-
-      ws.onclose = () => {
-        window.clearTimeout(timer);
-        if (wsRef.current !== ws) return;
-        wsRef.current = null;
-        setState((prev) => (prev === "idle" || prev === "connecting" ? "idle" : "disconnected"));
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setError(message);
-      emit({ kind: "error", title: "连接失败", description: message });
+    const timer = window.setTimeout(() => {
+      if (hello || wsRef.current !== ws) return;
+      ws.close();
+      setError("等待 hello 超时");
+      emit({ kind: "error", title: "连接超时", description: "未收到 hello" });
       setState("idle");
-    }
-  }, [disconnect, emit, handleFrame]);
+    }, 8000);
+
+    ws.onmessage = (ev) => {
+      if (wsRef.current !== ws) return;
+      if (typeof ev.data !== "string") return;
+      try {
+        const parsed: unknown = JSON.parse(ev.data);
+        if (isServerFrame(parsed)) {
+          if (parsed.type === "hello") {
+            hello = true;
+            window.clearTimeout(timer);
+          }
+          handleFrame(parsed);
+        }
+      } catch {
+        emit({ kind: "error", title: "连接失败", description: "收到非 JSON 帧" });
+      }
+    };
+
+    ws.onerror = () => {
+      if (wsRef.current !== ws) return;
+      window.clearTimeout(timer);
+      setError("WebSocket 连接失败");
+      emit({ kind: "error", title: "连接失败", description: `无法升级 ${url}` });
+      setState("idle");
+    };
+
+    ws.onclose = () => {
+      window.clearTimeout(timer);
+      if (wsRef.current !== ws) return;
+      wsRef.current = null;
+      setState((prev) => (prev === "idle" || prev === "connecting" ? "idle" : "disconnected"));
+    };
+  }, [disconnect, emit, handleFrame, relayOrigin]);
 
   useEffect(() => {
     return () => {
@@ -279,22 +305,19 @@ export function useCoyoteSocket(onEvent: (event: RelayEvent) => void) {
     };
   }, []);
 
-  const sendRpc = useCallback(
-    (req: RpcReq) => {
-      const ws = wsRef.current;
-      const clientId = appIdRef.current;
-      if (!ws || ws.readyState !== WebSocket.OPEN || !clientId) return false;
-      ws.send(
-        JSON.stringify({
-          type: "message",
-          clientId,
-          data: req,
-        }),
-      );
-      return true;
-    },
-    [],
-  );
+  const sendRpc = useCallback((req: RpcReq) => {
+    const ws = wsRef.current;
+    const clientId = appIdRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN || !clientId) return false;
+    ws.send(
+      JSON.stringify({
+        type: "message",
+        clientId,
+        data: req,
+      }),
+    );
+    return true;
+  }, []);
 
   const qrUrl = targetId ? qrPayload(relayOrigin, targetId) : null;
   const slotId = pickDevice(devices)?.slotId ?? null;

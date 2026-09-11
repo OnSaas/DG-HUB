@@ -8,8 +8,8 @@ Cloudflare Workers + Durable Objects，DG-Lab **Socket V4** 网页主控。被�
 
 ## 连接
 
-- 控制端：`POST /api/create` 拿 `clientId`，再 `wss://<host>/ws?sid=<id>` → `{ type: "hello", clientId }`
-- APP：`wss://<host>/ws?tid=<clientId>`
+- 控制端：`wss://<host>/v4` → `{ type: "hello", clientId }`
+- APP：`wss://<host>/v4/?tid=<clientId>`
 - 二维码：`https://dungeon-lab.cn/s/?v=1&action=socket&url=<encodeURIComponent(APP_WS)>`
 
 `/api/*`、`/health`、`/ws`、`/v4` 走 Worker；页面走 Assets。

@@ -47,12 +47,18 @@ export interface RemoteDevice {
   slotState?: Record<string, unknown>;
 }
 
-export function relayWsUrl(origin: string): string {
-  return origin.replace(/^http/, "ws").replace(/\/$/, "") + "/ws";
+export function wsOrigin(origin: string): string {
+  return origin.replace(/^http/, "ws").replace(/\/$/, "");
 }
 
+/** 控制方：官方示例 `wss://host/v4` */
+export function relayWsUrl(origin: string): string {
+  return `${wsOrigin(origin)}/v4`;
+}
+
+/** APP：官方示例 `wss://host/v4/?tid=` */
 export function appWsUrl(origin: string, targetId: string): string {
-  return `${relayWsUrl(origin)}?tid=${encodeURIComponent(targetId)}`;
+  return `${wsOrigin(origin)}/v4/?tid=${encodeURIComponent(targetId)}`;
 }
 
 export function qrPayload(origin: string, targetId: string): string {
