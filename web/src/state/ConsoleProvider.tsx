@@ -6,6 +6,7 @@ import { usePulseHold } from "../hooks/usePulseHold";
 import { useSessionRecorder } from "../hooks/useSessionRecorder";
 import { useStrength } from "../hooks/useStrength";
 import { loadSettings, saveSettings, type Settings } from "../lib/settings";
+import { useDevice } from "../app/DeviceProvider";
 
 interface ConsoleValue {
   relay: ReturnType<typeof useCoyoteSocket>;
@@ -36,7 +37,8 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     [toast],
   );
 
-  const relay = useCoyoteSocket(onEvent);
+  const device = useDevice();
+  const relay = useCoyoteSocket(onEvent, device?.session_id);
   const requirePaired = useCallback(() => {
     if (relay.state !== "paired") {
       toast.add({

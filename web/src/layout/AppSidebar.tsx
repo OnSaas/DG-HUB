@@ -1,12 +1,22 @@
 import { Lightning } from "@phosphor-icons/react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { NAV } from "./nav";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../app/auth/AuthProvider";
+import { NAV, deviceNav } from "./nav";
 
 export function AppSidebar() {
   const loc = useLocation();
   const nav = useNavigate();
-  const active = (to: string) =>
-    to === "/" ? loc.pathname === "/" : loc.pathname.startsWith(to);
+  const { deviceId } = useParams();
+  const { logout } = useAuth();
+
+  const items = [
+    ...NAV,
+    ...(deviceId ? deviceNav(deviceId) : []),
+    { to: "/admin/settings", label: "设置", match: "prefix" as const },
+  ];
+
+  const active = (to: string, match: "exact" | "prefix") =>
+    match === "exact" ? loc.pathname === to : loc.pathname.startsWith(to);
 
   return (
     <div className="rounded-2xl border border-black/10 bg-white p-5">
@@ -16,29 +26,34 @@ export function AppSidebar() {
         </div>
         <div className="min-w-0">
           <p className="truncate text-base font-semibold">DG-HUB</p>
-          <p className="truncate text-sm text-neutral-500">Socket V4 主控</p>
+          <p className="truncate text-sm text-neutral-500">Admin</p>
         </div>
       </div>
       <p className="mt-6 px-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
-        控制
+        管理
       </p>
       <nav className="mt-3 flex flex-col gap-2">
-        {NAV.map((item) => (
+        {items.map((item) => (
           <button
             key={item.to}
             type="button"
             className={`rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors ${
-              active(item.to)
-                ? "bg-theme text-[#171717]"
-                : "hover:bg-neutral-100"
+              active(item.to, item.match) ? "bg-theme text-[#171717]" : "hover:bg-neutral-100"
             }`}
             onClick={() => {
-              if (!active(item.to)) nav(item.to);
+              if (loc.pathname !== item.to) nav(item.to);
             }}
           >
             {item.label}
           </button>
         ))}
+        <button
+          type="button"
+          className="rounded-xl px-4 py-3 text-left text-sm text-neutral-500 hover:bg-neutral-100"
+          onClick={() => void logout().then(() => nav("/"))}
+        >
+          退出
+        </button>
       </nav>
     </div>
   );

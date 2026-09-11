@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>DG-HUB · 精密工具</title>
+  <style>
+    :root { --bg:#0a0a0a; --fg:#ededed; --muted:#8a8a8a; --line:#1f1f1f; --acc:#5e6ad2; --bad:#eb5757; --panel:#111; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--fg); font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    .shell { display: grid; grid-template-columns: 52px 1fr; min-height: 100dvh; }
+    nav {
+      border-right: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px;
+    }
+    nav button { width: 36px; height: 36px; border-radius: 8px; color: var(--muted); font-size: 11px; }
+    nav button.on { background: #1a1a1a; color: var(--fg); }
+    main { display: flex; flex-direction: column; min-width: 0; }
+    .bar { height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+    .pill { font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 2px 8px; border-radius: 99px; }
+    .pill.ok { color: #4ade80; border-color: #245c38; }
+    .grow { flex: 1; }
+    .stop { color: var(--bad); font-size: 12px; font-weight: 600; }
+    .page { padding: 20px; display: flex; flex-direction: column; gap: 12px; max-width: 720px; }
+    .row {
+      display: grid; grid-template-columns: 28px 1fr 64px auto; gap: 12px; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid var(--line);
+    }
+    .ch { font-weight: 600; color: var(--muted); }
+    input[type=range] { width: 100%; accent-color: var(--acc); }
+    .n { font-variant-numeric: tabular-nums; text-align: right; }
+    .pm { display: flex; gap: 4px; }
+    .pm button { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 6px; }
+    .waves { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .waves button { height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; color: var(--muted); }
+    .waves button.on { border-color: var(--acc); color: var(--fg); }
+    .hidden { display: none; }
+    .pairbox { border: 1px dashed var(--line); padding: 24px; text-align: center; color: var(--muted); }
+    .qr { width: 140px; height: 140px; margin: 12px auto; background: #fff; color: #111; display: grid; place-items: center; }
+    @media (max-width: 640px) {
+      .shell { grid-template-columns: 1fr; }
+      nav {
+        position: fixed; left: 0; right: 0; bottom: 0; flex-direction: row; justify-content: space-around;
+        border-right: 0; border-top: 1px solid var(--line); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 10; background: var(--bg);
+      }
+      main { padding-bottom: 64px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav>
+      <button class="on" data-p="console">控</button>
+      <button data-p="pair">配</button>
+      <button data-p="waves">波</button>
+    </nav>
+    <main>
+      <div class="bar">
+        <strong>DG-HUB</strong>
+        <span class="pill" id="pill">未连接</span>
+        <span class="grow"></span>
+        <button class="stop" id="stop">急停</button>
+      </div>
+      <section class="page" id="console">
+        <div class="row">
+          <span class="ch">A</span>
+          <input type="range" min="0" max="100" value="0" id="a" />
+          <span class="n" id="na">0</span>
+          <div class="pm"><button data-c="A" data-d="-1">−</button><button data-c="A" data-d="1">+</button></div>
+        </div>
+        <div class="row">
+          <span class="ch">B</span>
+          <input type="range" min="0" max="100" value="0" id="b" />
+          <span class="n" id="nb">0</span>
+          <div class="pm"><button data-c="B" data-d="-1">−</button><button data-c="B" data-d="1">+</button></div>
+        </div>
+        <div class="waves">
+          <button data-w="呼吸">呼吸</button>
+          <button data-w="潮汐">潮汐</button>
+          <button data-w="心跳">心跳</button>
+          <button data-w="脉冲">脉冲</button>
+        </div>
+      </section>
+      <section class="page hidden" id="pair">
+        <div class="pairbox">
+          扫码接入 4.0 APP
+          <div class="qr">QR</div>
+          <button id="ok" style="margin-top:8px;border:1px solid var(--line);padding:8px 16px;border-radius:6px">模拟接入</button>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const S = { A: 0, B: 0, paired: false };
+    function paint() {
+      a.value = S.A; b.value = S.B; na.textContent = S.A; nb.textContent = S.B;
+      pill.textContent = S.paired ? "已配对" : "未连接";
+      pill.classList.toggle("ok", S.paired);
+    }
+    a.oninput = () => { S.A = +a.value; paint(); };
+    b.oninput = () => { S.B = +b.value; paint(); };
+    document.querySelectorAll(".pm button").forEach((x) => x.onclick = () => {
+      S[x.dataset.c] = Math.max(0, Math.min(100, S[x.dataset.c] + +x.dataset.d)); paint();
+    });
+    stop.onclick = () => { S.A = 0; S.B = 0; paint(); };
+    ok.onclick = () => { S.paired = true; paint(); };
+    document.querySelectorAll("nav button").forEach((btn) => btn.onclick = () => {
+      document.querySelectorAll("nav button").forEach((x) => x.classList.toggle("on", x === btn));
+      console.classList.toggle("hidden", btn.dataset.p !== "console" && btn.dataset.p !== "waves");
+      pair.classList.toggle("hidden", btn.dataset.p !== "pair");
+    });
+    document.querySelectorAll(".waves button").forEach((w) => w.onclick = () => {
+      document.querySelectorAll(".waves button").forEach((x) => x.classList.toggle("on", x === w));
+    });
+    paint();
+  </script>
+</body>
+</html>

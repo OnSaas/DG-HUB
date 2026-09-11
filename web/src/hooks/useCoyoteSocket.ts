@@ -82,7 +82,10 @@ function asDevices(value: unknown): RemoteDevice[] {
   );
 }
 
-export function useCoyoteSocket(onEvent: (event: RelayEvent) => void) {
+export function useCoyoteSocket(
+  onEvent: (event: RelayEvent) => void,
+  sessionId?: string | null,
+) {
   const [state, setState] = useState<ConnState>("idle");
   const [targetId, setTargetId] = useState<string | null>(null);
   const [appId, setAppId] = useState<string | null>(null);
@@ -247,11 +250,15 @@ export function useCoyoteSocket(onEvent: (event: RelayEvent) => void) {
   }, []);
 
   const connect = useCallback(() => {
+    if (!sessionId) {
+      emit({ kind: "error", title: "未选择设备", description: "先在设备列表创建并进入设备" });
+      return;
+    }
     disconnect();
     setState("connecting");
     setError(null);
 
-    const url = relayWsUrl(relayOrigin);
+    const url = `${relayWsUrl(relayOrigin)}?sid=${encodeURIComponent(sessionId)}`;
     const ws = new WebSocket(url);
     wsRef.current = ws;
     let hello = false;
@@ -295,7 +302,7 @@ export function useCoyoteSocket(onEvent: (event: RelayEvent) => void) {
       wsRef.current = null;
       setState((prev) => (prev === "idle" || prev === "connecting" ? "idle" : "disconnected"));
     };
-  }, [disconnect, emit, handleFrame, relayOrigin]);
+  }, [disconnect, emit, handleFrame, relayOrigin, sessionId]);
 
   useEffect(() => {
     return () => {

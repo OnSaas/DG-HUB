@@ -2,9 +2,9 @@ import { Button } from "@cloudflare/kumo/components/button";
 import { Dialog } from "@cloudflare/kumo/components/dialog";
 import { Lightning, List, Stop } from "@phosphor-icons/react";
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useConsole } from "../state/ConsoleProvider";
-import { NAV } from "./nav";
+import { NAV, deviceNav } from "./nav";
 
 export function AppTopbar({
   menuOpen,
@@ -17,6 +17,12 @@ export function AppTopbar({
 }) {
   const loc = useLocation();
   const nav = useNavigate();
+  const { deviceId } = useParams();
+  const items = [
+    ...NAV,
+    ...(deviceId ? deviceNav(deviceId) : []),
+    { to: "/admin/settings", label: "设置", match: "prefix" as const },
+  ];
   const { emergencyStop, settings } = useConsole();
   const [confirm, setConfirm] = useState(false);
 
@@ -60,7 +66,7 @@ export function AppTopbar({
           </button>
           {menuOpen ? (
             <div className="dg-menu-pop">
-              {NAV.map((item) => (
+              {items.map((item) => (
                 <button
                   key={item.to}
                   type="button"

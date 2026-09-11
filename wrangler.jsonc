@@ -17,6 +17,14 @@
       "new_sqlite_classes": ["Session"]
     }
   ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dg-hub",
+      "database_id": "7bb01c23-38e5-477e-93af-df1f5251fc82",
+      "migrations_dir": "migrations"
+    }
+  ],
   "observability": {
     "enabled": true
   },

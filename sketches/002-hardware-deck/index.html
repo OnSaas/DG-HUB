@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>DG-HUB · 硬件面板</title>
+  <style>
+    :root { --bg:#0b0c0e; --metal:#16181c; --line:#2c3038; --amber:#ffb020; --text:#eceff4; --muted:#8b919c; --bad:#e24a3a; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    .deck { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; }
+    header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--metal); border-bottom: 1px solid var(--line); }
+    .led { width: 10px; height: 10px; border-radius: 50%; background: #3a3f48; }
+    .led.on { background: #3dff8a; box-shadow: 0 0 10px #3dff8a88; }
+    .brand { font-weight: 700; letter-spacing: .2em; font-size: 11px; }
+    .fill { flex: 1; }
+    .kill { height: 48px; min-width: 96px; background: var(--bad); color: #fff; font-weight: 800; border-radius: 6px; }
+    .strips { display: grid; grid-template-columns: 1fr 56px 1fr; min-height: 0; }
+    .strip { padding: 16px 12px 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .name { font-size: 12px; letter-spacing: .16em; color: var(--amber); }
+    .num { font-size: 40px; font-variant-numeric: tabular-nums; }
+    .fader {
+      writing-mode: vertical-lr; transform: rotate(180deg); height: 220px; width: 36px; accent-color: var(--amber);
+    }
+    .pads { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+    .pads button { height: 48px; background: var(--metal); border: 1px solid var(--line); border-radius: 8px; }
+    .link {
+      display: flex; align-items: center; justify-content: center; border-left: 1px solid var(--line); border-right: 1px solid var(--line);
+    }
+    .link button { width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); }
+    .link button.on { border-color: var(--amber); color: var(--amber); }
+    footer { display: flex; gap: 8px; overflow-x: auto; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--metal); }
+    footer button { flex: 0 0 auto; height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 20px; font-size: 13px; }
+    footer button.on { background: var(--amber); color: #16120a; border-color: var(--amber); }
+    .pair { display: none; position: fixed; inset: 0; background: #000c; place-items: center; }
+    .pair.on { display: grid; }
+    .box { width: min(320px, 92vw); background: var(--metal); padding: 20px; border-radius: 12px; text-align: center; }
+    .qr { width: 160px; height: 160px; margin: 12px auto; background: #fff; color: #111; display: grid; place-items: center; }
+    @media (max-width: 520px) {
+      .strips { grid-template-columns: 1fr; }
+      .link { border: 0; padding: 8px 0; }
+      .fader { height: 140px; writing-mode: horizontal-tb; transform: none; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <header>
+      <span class="led" id="led"></span>
+      <span class="brand">COYOTE DECK</span>
+      <span class="fill"></span>
+      <button id="pairBtn">配对</button>
+      <button class="kill" id="kill">KILL</button>
+    </header>
+    <div class="strips">
+      <div class="strip" data-ch="A">
+        <div class="name">CH A</div>
+        <div class="num" id="nA">00</div>
+        <input class="fader" type="range" min="0" max="100" value="0" id="fA" />
+        <div class="pads">
+          <button data-n="-5">−5</button><button data-n="5">+5</button>
+        </div>
+      </div>
+      <div class="link"><button id="link">A/B</button></div>
+      <div class="strip" data-ch="B">
+        <div class="name">CH B</div>
+        <div class="num" id="nB">00</div>
+        <input class="fader" type="range" min="0" max="100" value="0" id="fB" />
+        <div class="pads">
+          <button data-n="-5">−5</button><button data-n="5">+5</button>
+        </div>
+      </div>
+    </div>
+    <footer>
+      <button data-w="呼吸">呼吸</button>
+      <button data-w="潮汐">潮汐</button>
+      <button data-w="心跳">心跳</button>
+      <button data-w="脉冲">脉冲</button>
+      <button data-w="挤压">挤压</button>
+      <button data-w="气泡">气泡</button>
+    </footer>
+  </div>
+  <div class="pair" id="pair">
+    <div class="box">
+      <div>扫码接入 4.0 APP</div>
+      <div class="qr">QR</div>
+      <button class="kill" style="width:100%;background:var(--amber);color:#111" id="ok">模拟接入</button>
+    </div>
+  </div>
+  <script>
+    const S = { A: 0, B: 0, link: false, paired: false };
+    const pad = (n) => String(n).padStart(2, "0");
+    function paint() {
+      nA.textContent = pad(S.A); nB.textContent = pad(S.B);
+      fA.value = S.A; fB.value = S.B;
+      led.classList.toggle("on", S.paired);
+    }
+    function set(ch, v) {
+      v = Math.max(0, Math.min(100, v));
+      S[ch] = v;
+      if (S.link) S[ch === "A" ? "B" : "A"] = v;
+      paint();
+    }
+    fA.oninput = () => set("A", +fA.value);
+    fB.oninput = () => set("B", +fB.value);
+    document.querySelectorAll(".pads button").forEach((b) => {
+      b.onclick = () => set(b.closest(".strip").dataset.ch, S[b.closest(".strip").dataset.ch] + +b.dataset.n);
+    });
+    link.onclick = () => { S.link = !S.link; link.classList.toggle("on", S.link); };
+    kill.onclick = () => { S.A = 0; S.B = 0; paint(); };
+    pairBtn.onclick = () => pair.classList.add("on");
+    pair.onclick = (e) => { if (e.target === pair) pair.classList.remove("on"); };
+    ok.onclick = () => { S.paired = true; paint(); pair.classList.remove("on"); };
+    document.querySelectorAll("footer button").forEach((b) => b.onclick = () => {
+      document.querySelectorAll("footer button").forEach((x) => x.classList.toggle("on", x === b));
+    });
+    paint();
+  </script>
+</body>
+</html>
