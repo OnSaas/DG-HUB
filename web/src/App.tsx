@@ -18,6 +18,8 @@ function LoginAlias() {
   const { search } = useLocation();
   return <Navigate to={`/admin/login${search}`} replace />;
 }
+
+function DevicesAlias() {
   const { pathname, search } = useLocation();
   const rest = pathname.replace(/^\/devices/, "") || "";
   return <Navigate to={`/admin/devices${rest}${search}`} replace />;
